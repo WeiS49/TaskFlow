@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:push": "npx drizzle-kit push",
+    "db:generate": "npx drizzle-kit generate",
+    "db:seed": "npx tsx --env-file=.env src/db/seed.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
