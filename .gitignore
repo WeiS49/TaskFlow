@@ -1,18 +1,14 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-.venv/
-*.db
-
-# Node
+# Dependencies
 node_modules/
-dist/
+
+# Next.js
+.next/
+out/
 
 # Environment
 .env
-*.local
+.env.local
+.env.*.local
 
 # IDE
 .vscode/
@@ -20,13 +16,19 @@ dist/
 *.swp
 *.swo
 
-# Claude Code
-.claude/
-
 # OS
 .DS_Store
 Thumbs.db
 
-# Build artifacts
-*.crx
-*.zip
+# Claude Code
+.claude/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Debug
+npm-debug.log*
+
+# Vercel
+.vercel

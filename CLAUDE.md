@@ -1,43 +1,61 @@
-# BookMark - Smart Bookmark Manager
+# TaskFlow - Personal Task Management SaaS
 
 ## Project Overview
-Chrome Extension + FastAPI backend for AI-powered bookmark management.
-Save URLs with one click → auto-extract content → AI summarization + tagging → search/browse via Web UI.
+Full-stack task management app with Sunsama-inspired calm UI.
+Start-date-based task visibility, time-block daily planning, single-user auth.
 
 ## Tech Stack
-- **Backend**: FastAPI + SQLModel + SQLite (sync) + Jinja2 + htmx
-- **Extension**: TypeScript + Vite + CRXJS (Manifest V3)
-- **AI**: google-genai SDK (Gemini 2.5 Flash), abstract provider pattern
-- **Content Extraction**: readability-lxml + BeautifulSoup4
+- **Framework**: Next.js 15 (App Router, Server Actions, Turbopack)
+- **UI**: Tailwind CSS v4 + shadcn/ui + Lucide Icons
+- **Database**: Drizzle ORM + Neon PostgreSQL (serverless HTTP driver)
+- **Auth**: Auth.js v5 beta (Credentials Provider, JWT strategy)
+- **Validation**: Zod
+- **Theme**: next-themes (light/dark)
+- **Toasts**: Sonner
+- **Dates**: date-fns
 
 ## Project Structure
-- `api/` — Python backend (FastAPI)
-- `extension/` — Chrome Extension (TypeScript)
+```
+src/
+├── app/              # Next.js App Router pages
+│   ├── (auth)/       # Login page (public)
+│   └── (app)/        # Main app (authenticated)
+│       ├── today/    # Daily plan view
+│       ├── tasks/    # List view
+│       └── projects/ # Project detail
+├── actions/          # Server Actions (CRUD)
+├── db/               # Schema, client, migrations, seed
+├── lib/              # Auth config, validators, utils
+├── hooks/            # Client-side hooks
+└── components/
+    ├── ui/           # shadcn/ui components
+    ├── layout/       # AppShell, Sidebar, Header
+    ├── task/         # TaskCard, TaskForm, TaskList
+    ├── project/      # ProjectBadge, ProjectForm
+    ├── label/        # LabelBadge, LabelPicker
+    └── daily-plan/   # DayHeader, TimeBlockSection
+```
 
 ## Development Commands
-
-### Backend (api/)
 ```bash
-cd api && uv run uvicorn app.main:app --reload     # Dev server
-cd api && uv run ruff check .                        # Lint
-cd api && uv run ruff check . --fix                  # Auto-fix lint
-cd api && uv run pytest                              # Tests
+npm run dev          # Dev server (Turbopack)
+npm run build        # Production build
+npm run lint         # ESLint
+npx tsc --noEmit     # Type check
+npx drizzle-kit push # Push schema to DB
+npx drizzle-kit generate  # Generate migration
 ```
 
-### Extension (extension/)
+## Verify (run before every commit)
 ```bash
-cd extension && npm run dev      # Dev with HMR
-cd extension && npm run build    # Production build
-cd extension && npx tsc --noEmit # Type check
-```
-
-### Verify (both)
-```bash
-cd api && uv run ruff check . && cd ../extension && npx tsc --noEmit && npm run build
+npx tsc --noEmit && npm run build && npm run lint
 ```
 
 ## Architecture Decisions
-- **Sync SQLite**: Consistency > performance for single-user local app
-- **Background threads**: No Celery needed, daemon threads suffice
-- **Jinja2 + htmx**: Zero build step for Web UI
-- **AI graceful degradation**: AI failure never blocks bookmark saving
+- **Server Actions over REST**: Automatic CSRF, integrated revalidation
+- **UUID primary keys**: Client-side ID generation for optimistic UI
+- **Fractional indexing**: position field (real type) for efficient reordering
+- **Soft delete**: deletedAt timestamps, never hard-delete user data
+- **JWT sessions**: No DB session table needed for single-user
+- **startDate visibility**: Tasks hidden from "Today" until startDate arrives
+- **timeBlock enum**: morning/afternoon/evening/unscheduled for day planning
