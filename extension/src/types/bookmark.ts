@@ -1,0 +1,18 @@
+export interface BookmarkCreate {
+  url: string;
+  title: string;
+  note?: string;
+  tags?: string[];
+}
+
+export interface BookmarkResponse {
+  id: number;
+  url: string;
+  title: string;
+  note: string;
+  summary: string;
+  ai_status: "pending" | "processing" | "completed" | "failed";
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
