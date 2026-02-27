@@ -1,13 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Plus } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
+import { ProjectFormDialog } from "@/components/project/project-form-dialog";
 import type { Project, Label } from "@/db/schema";
 
 interface SidebarNavProps {
@@ -29,6 +31,7 @@ export function SidebarNav({
   todayTaskCount,
 }: SidebarNavProps) {
   const pathname = usePathname();
+  const [createOpen, setCreateOpen] = useState(false);
 
   return (
     <aside className="flex h-full w-[260px] shrink-0 flex-col bg-sidebar text-sidebar-foreground">
@@ -75,34 +78,40 @@ export function SidebarNav({
         <hr className="mx-5 my-4 border-sidebar-border" />
 
         {/* Projects */}
-        {projects.length > 0 && (
-          <div>
-            <h3 className="mb-1 px-5 font-[family-name:var(--font-heading)] text-[13px] font-semibold text-muted-foreground">
+        <div>
+          <div className="mb-1 px-5 flex items-center justify-between">
+            <h3 className="font-[family-name:var(--font-heading)] text-[13px] font-semibold text-muted-foreground">
               Projects
             </h3>
-            {projects.map((project) => {
-              const isActive = pathname === `/projects/${project.id}`;
-              return (
-                <Link
-                  key={project.id}
-                  href={`/projects/${project.id}`}
-                  className={cn(
-                    "flex items-center gap-2.5 px-5 py-2.5 text-sm transition-colors",
-                    isActive
-                      ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                  )}
-                >
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: project.color }}
-                  />
-                  {project.name}
-                </Link>
-              );
-            })}
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="rounded-md p-0.5 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
           </div>
-        )}
+          {projects.map((project) => {
+            const isActive = pathname === `/projects/${project.id}`;
+            return (
+              <Link
+                key={project.id}
+                href={`/projects/${project.id}`}
+                className={cn(
+                  "flex items-center gap-2.5 px-5 py-2.5 text-sm transition-colors",
+                  isActive
+                    ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                )}
+              >
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: project.color }}
+                />
+                {project.name}
+              </Link>
+            );
+          })}
+        </div>
 
         <hr className="mx-5 my-4 border-sidebar-border" />
 
@@ -143,6 +152,10 @@ export function SidebarNav({
           Sign out
         </button>
       </div>
+      <ProjectFormDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+      />
     </aside>
   );
 }
