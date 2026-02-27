@@ -76,3 +76,56 @@ export async function getTaskById(id: string, userId: string) {
 export type TaskWithRelations = NonNullable<
   Awaited<ReturnType<typeof getTaskById>>
 >;
+
+export async function getFilteredTasks(
+  userId: string,
+  filters?: { status?: string; priority?: string; projectId?: string },
+) {
+  const conditions = [eq(tasks.userId, userId), isNull(tasks.deletedAt)];
+
+  if (filters?.status) {
+    conditions.push(eq(tasks.status, filters.status as typeof tasks.status.enumValues[number]));
+  }
+  if (filters?.priority) {
+    conditions.push(eq(tasks.priority, filters.priority as typeof tasks.priority.enumValues[number]));
+  }
+  if (filters?.projectId) {
+    conditions.push(eq(tasks.projectId, filters.projectId));
+  }
+
+  return db.query.tasks.findMany({
+    where: and(...conditions),
+    with: {
+      project: true,
+      taskLabels: { with: { label: true } },
+    },
+    orderBy: [desc(tasks.createdAt)],
+  });
+}
+
+export async function getProjectWithTasks(projectId: string, userId: string) {
+  const project = await db.query.projects.findFirst({
+    where: and(
+      eq(projects.id, projectId),
+      eq(projects.userId, userId),
+      isNull(projects.deletedAt),
+    ),
+  });
+
+  if (!project) return null;
+
+  const projectTasks = await db.query.tasks.findMany({
+    where: and(
+      eq(tasks.userId, userId),
+      eq(tasks.projectId, projectId),
+      isNull(tasks.deletedAt),
+    ),
+    with: {
+      project: true,
+      taskLabels: { with: { label: true } },
+    },
+    orderBy: [asc(tasks.position), asc(tasks.createdAt)],
+  });
+
+  return { project, tasks: projectTasks };
+}
