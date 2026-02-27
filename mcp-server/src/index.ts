@@ -4,6 +4,7 @@ import "dotenv/config";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createDb, type Db } from "./db.js";
+import { registerReadTools } from "./tools/read.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -34,10 +35,7 @@ async function main() {
   const userId = await getUserId();
   console.error(`TaskFlow MCP Server started (userId: ${userId})`);
 
-  // Tool registrations will be added in subsequent commits
-  void server;
-  void db;
-  void userId;
+  registerReadTools(server, db, userId);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
