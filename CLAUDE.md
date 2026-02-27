@@ -51,6 +51,19 @@ npx drizzle-kit generate  # Generate migration
 npx tsc --noEmit && npm run build && npm run lint
 ```
 
+## MCP Server (`mcp-server/`)
+Standalone stdio MCP server for Claude Code integration. 14 tools:
+
+**Read**: `list_today_tasks`, `list_all_tasks`, `get_task`, `search_tasks`, `get_overdue`
+**Write**: `create_task`, `update_task`, `delete_task`, `complete_task`
+**Quick**: `set_priority`, `set_timeblock`
+**AI**: `split_task`, `arrange_today`, `batch_update`
+
+```bash
+# MCP server verify
+cd mcp-server && npx tsc --noEmit && npm run build
+```
+
 ## Architecture Decisions
 - **Server Actions over REST**: Automatic CSRF, integrated revalidation
 - **UUID primary keys**: Client-side ID generation for optimistic UI

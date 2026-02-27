@@ -7,6 +7,7 @@ import { createDb, type Db } from "./db.js";
 import { registerReadTools } from "./tools/read.js";
 import { registerWriteTools } from "./tools/write.js";
 import { registerConvenienceTools } from "./tools/convenience.js";
+import { registerAiPoweredTools } from "./tools/ai-powered.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -40,6 +41,7 @@ async function main() {
   registerReadTools(server, db, userId);
   registerWriteTools(server, db, userId);
   registerConvenienceTools(server, db, userId);
+  registerAiPoweredTools(server, db, userId);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
