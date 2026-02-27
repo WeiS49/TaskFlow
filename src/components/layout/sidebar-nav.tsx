@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, ListTodo, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { format } from "date-fns";
+import { zhCN } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
 import type { Project, Label } from "@/db/schema";
@@ -12,110 +14,122 @@ interface SidebarNavProps {
   user: { id: string; name: string; email: string };
   projects: Project[];
   labels: Label[];
+  todayTaskCount: number;
 }
 
 const navItems = [
-  { href: "/today", label: "Today", icon: CalendarDays },
-  { href: "/tasks", label: "All Tasks", icon: ListTodo },
+  { href: "/today", label: "Today", emoji: "✨" },
+  { href: "/tasks", label: "All Tasks", emoji: "📋" },
 ];
 
-export function SidebarNav({ user, projects, labels }: SidebarNavProps) {
+export function SidebarNav({
+  user,
+  projects,
+  labels,
+  todayTaskCount,
+}: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
     <aside className="flex h-full w-[260px] shrink-0 flex-col bg-sidebar text-sidebar-foreground">
-      {/* Brand */}
-      <div className="flex h-14 items-center gap-2 px-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
-          T
-        </div>
-        <span className="font-[family-name:var(--font-heading)] text-lg font-semibold">
+      {/* Header */}
+      <div className="px-5 pb-6 pt-6">
+        <h2 className="font-[family-name:var(--font-heading)] text-[22px] font-semibold">
           TaskFlow
-        </span>
+        </h2>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">
+          {format(new Date(), "yyyy年M月d日 · EEEE", { locale: zhCN })}
+        </p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
-        <div className="space-y-1">
+      <nav className="flex-1 overflow-y-auto">
+        <div>
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const count =
+              item.href === "/today" ? todayTaskCount : undefined;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                  "flex items-center gap-2.5 px-5 py-2.5 text-sm transition-colors",
                   isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                 )}
               >
-                <item.icon className="h-4 w-4" />
+                <span>{item.emoji}</span>
                 {item.label}
+                {count !== undefined && count > 0 && (
+                  <span className="ml-auto rounded-lg bg-sidebar-accent px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                    {count}
+                  </span>
+                )}
               </Link>
             );
           })}
         </div>
 
+        <hr className="mx-5 my-4 border-sidebar-border" />
+
         {/* Projects */}
         {projects.length > 0 && (
-          <div className="pt-4">
-            <h3 className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <div>
+            <h3 className="mb-1 px-5 font-[family-name:var(--font-heading)] text-[13px] font-semibold text-muted-foreground">
               Projects
             </h3>
-            <div className="space-y-1">
-              {projects.map((project) => {
-                const isActive = pathname === `/projects/${project.id}`;
-                return (
-                  <Link
-                    key={project.id}
-                    href={`/projects/${project.id}`}
-                    className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                    )}
-                  >
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: project.color }}
-                    />
-                    {project.name}
-                  </Link>
-                );
-              })}
-            </div>
+            {projects.map((project) => {
+              const isActive = pathname === `/projects/${project.id}`;
+              return (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className={cn(
+                    "flex items-center gap-2.5 px-5 py-2.5 text-sm transition-colors",
+                    isActive
+                      ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                  )}
+                >
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: project.color }}
+                  />
+                  {project.name}
+                </Link>
+              );
+            })}
           </div>
         )}
 
+        <hr className="mx-5 my-4 border-sidebar-border" />
+
         {/* Labels */}
         {labels.length > 0 && (
-          <div className="pt-4">
-            <h3 className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <div>
+            <h3 className="mb-1 px-5 font-[family-name:var(--font-heading)] text-[13px] font-semibold text-muted-foreground">
               Labels
             </h3>
-            <div className="flex flex-wrap gap-1.5 px-3">
-              {labels.map((label) => (
-                <span
-                  key={label.id}
-                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  style={{
-                    backgroundColor: `${label.color}1F`,
-                    color: label.color,
-                  }}
-                >
-                  {label.name}
+            {labels.map((label) => (
+              <div
+                key={label.id}
+                className="flex items-center gap-2.5 px-5 py-2.5 text-sm text-sidebar-foreground/70"
+              >
+                <span className="text-xs" style={{ color: label.color }}>
+                  #
                 </span>
-              ))}
-            </div>
+                {label.name}
+              </div>
+            ))}
           </div>
         )}
       </nav>
 
       {/* Footer */}
       <div className="border-t border-sidebar-border p-3 space-y-2">
-        <div className="flex items-center justify-between px-1">
+        <div className="flex items-center justify-between px-2">
           <span className="text-xs text-muted-foreground truncate">
             {user.email}
           </span>

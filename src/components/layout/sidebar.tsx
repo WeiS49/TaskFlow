@@ -1,6 +1,6 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, lte, or, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { projects, labels } from "@/db/schema";
+import { projects, labels, tasks } from "@/db/schema";
 import { SidebarNav } from "./sidebar-nav";
 
 interface SidebarProps {
@@ -8,7 +8,9 @@ interface SidebarProps {
 }
 
 export async function Sidebar({ user }: SidebarProps) {
-  const [userProjects, userLabels] = await Promise.all([
+  const today = new Date().toISOString().split("T")[0];
+
+  const [userProjects, userLabels, todayTasks] = await Promise.all([
     db.query.projects.findMany({
       where: and(eq(projects.userId, user.id), isNull(projects.deletedAt)),
       orderBy: (p, { asc }) => [asc(p.position)],
@@ -17,6 +19,15 @@ export async function Sidebar({ user }: SidebarProps) {
       where: eq(labels.userId, user.id),
       orderBy: (l, { asc }) => [asc(l.name)],
     }),
+    db.query.tasks.findMany({
+      where: and(
+        eq(tasks.userId, user.id),
+        isNull(tasks.deletedAt),
+        ne(tasks.status, "done"),
+        or(lte(tasks.startDate, today), isNull(tasks.startDate)),
+      ),
+      columns: { id: true },
+    }),
   ]);
 
   return (
@@ -24,6 +35,7 @@ export async function Sidebar({ user }: SidebarProps) {
       user={user}
       projects={userProjects}
       labels={userLabels}
+      todayTaskCount={todayTasks.length}
     />
   );
 }
