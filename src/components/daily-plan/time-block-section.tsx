@@ -35,7 +35,7 @@ export function TimeBlockSection({ timeBlock, tasks, projects, labels }: TimeBlo
         ))}
       </div>
 
-      <TaskForm defaultTimeBlock={timeBlock} />
+      <TaskForm defaultTimeBlock={timeBlock} projects={projects} />
     </section>
   );
 }
