@@ -19,13 +19,13 @@ export function TimeBlockSection({ timeBlock, tasks }: TimeBlockSectionProps) {
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-3">
-        <h2 className="font-[family-name:var(--font-heading)] text-lg font-medium text-foreground/80">
+        <span className="font-[family-name:var(--font-heading)] text-sm font-medium text-muted-foreground whitespace-nowrap">
           {TIME_BLOCK_LABELS[timeBlock]}
-        </h2>
-        <div className="h-px flex-1 bg-border" />
+        </span>
+        <hr className="flex-1 border-border" />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {tasks.map((task) => (
           <TaskCard key={task.id} task={task} />
         ))}

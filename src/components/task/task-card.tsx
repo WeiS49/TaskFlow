@@ -5,7 +5,6 @@ import { toggleTaskStatus } from "@/actions/task-actions";
 import { TaskCheckbox } from "./task-checkbox";
 import { ProjectBadge } from "@/components/project/project-badge";
 import { LabelBadge } from "@/components/label/label-badge";
-import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/db/queries";
 
@@ -26,7 +25,7 @@ export function TaskCard({ task }: TaskCardProps) {
   return (
     <div
       className={cn(
-        "group flex items-start gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:border-primary/20",
+        "group flex items-start gap-3.5 rounded-xl border border-border bg-card px-5 py-4 transition-all hover:border-primary hover:shadow-[0_2px_8px_rgba(99,102,241,0.08)]",
         isPending && "opacity-60",
       )}
     >
@@ -47,12 +46,12 @@ export function TaskCard({ task }: TaskCardProps) {
         </p>
 
         {task.description && (
-          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
+          <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
             {task.description}
           </p>
         )}
 
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           {task.project && (
             <ProjectBadge
               name={task.project.name}
@@ -67,9 +66,8 @@ export function TaskCard({ task }: TaskCardProps) {
             />
           ))}
           {task.estimatedMinutes && (
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              {task.estimatedMinutes}m
+            <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
+              ⏱ {task.estimatedMinutes}m
             </span>
           )}
         </div>

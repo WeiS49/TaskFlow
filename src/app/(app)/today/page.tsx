@@ -12,7 +12,7 @@ export default async function TodayPage() {
   const { tasks, grouped } = await getTodayTasks(session.user.id);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 p-6">
+    <div className="space-y-6 px-10 py-8">
       <DayHeader tasks={tasks} />
 
       {TIME_BLOCKS.map((block) => (

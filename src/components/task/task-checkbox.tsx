@@ -21,7 +21,7 @@ export function TaskCheckbox({ checked, onToggle, disabled }: TaskCheckboxProps)
         "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
         checked
           ? "border-primary bg-primary text-primary-foreground"
-          : "border-muted-foreground/40 hover:border-primary",
+          : "border-[#C5C0D8] hover:border-primary",
         disabled && "opacity-50 cursor-not-allowed",
       )}
     >
