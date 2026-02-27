@@ -5,6 +5,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createDb, type Db } from "./db.js";
 import { registerReadTools } from "./tools/read.js";
+import { registerWriteTools } from "./tools/write.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -36,6 +37,7 @@ async function main() {
   console.error(`TaskFlow MCP Server started (userId: ${userId})`);
 
   registerReadTools(server, db, userId);
+  registerWriteTools(server, db, userId);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
