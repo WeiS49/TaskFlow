@@ -3,7 +3,7 @@
 import { eq, and, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { tasks } from "@/db/schema";
+import { tasks, taskLabels } from "@/db/schema";
 import { taskCreateSchema, taskUpdateSchema } from "@/lib/validators";
 import { requireAuth, type ActionResult } from "@/lib/auth-utils";
 import type { Task } from "@/db/schema";
@@ -152,6 +152,45 @@ export async function toggleTaskStatus(
       success: false,
       error:
         error instanceof Error ? error.message : "Failed to toggle task status",
+    };
+  }
+}
+
+export async function setTaskLabels(
+  taskId: string,
+  labelIds: string[],
+): Promise<ActionResult<{ taskId: string; labelIds: string[] }>> {
+  try {
+    const userId = await requireAuth();
+
+    const task = await db.query.tasks.findFirst({
+      where: and(
+        eq(tasks.id, taskId),
+        eq(tasks.userId, userId),
+        isNull(tasks.deletedAt),
+      ),
+    });
+
+    if (!task) {
+      return { success: false, error: "Task not found" };
+    }
+
+    await db.delete(taskLabels).where(eq(taskLabels.taskId, taskId));
+
+    if (labelIds.length > 0) {
+      await db
+        .insert(taskLabels)
+        .values(labelIds.map((labelId) => ({ taskId, labelId })));
+    }
+
+    revalidatePath("/today");
+    revalidatePath("/tasks");
+    return { success: true, data: { taskId, labelIds } };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to update labels",
     };
   }
 }

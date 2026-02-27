@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { updateTask, deleteTask } from "@/actions/task-actions";
+import { updateTask, deleteTask, setTaskLabels } from "@/actions/task-actions";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { LabelPicker } from "@/components/label/label-picker";
 import { cn } from "@/lib/utils";
 import { PRIORITIES, TIME_BLOCKS, type Priority, type TimeBlock } from "@/lib/constants";
 import type { TaskWithRelations } from "@/db/queries";
@@ -36,9 +37,7 @@ import type { Project, Label } from "@/db/schema";
 interface TaskEditDialogProps {
   task: TaskWithRelations;
   projects: Project[];
-  labels?: Label[];
-  selectedLabelIds?: string[];
-  onLabelsChange?: (labelIds: string[]) => void;
+  labels: Label[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -61,6 +60,7 @@ const TIME_BLOCK_LABELS: Record<string, string> = {
 export function TaskEditDialog({
   task,
   projects,
+  labels,
   open,
   onOpenChange,
 }: TaskEditDialogProps) {
@@ -81,6 +81,9 @@ export function TaskEditDialog({
     task.estimatedMinutes?.toString() ?? "",
   );
   const [projectId, setProjectId] = useState(task.projectId ?? "none");
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>(
+    task.taskLabels.map((tl) => tl.label.id),
+  );
 
   function handleSave() {
     startTransition(async () => {
@@ -96,12 +99,21 @@ export function TaskEditDialog({
         formData.set("estimatedMinutes", estimatedMinutes);
       if (projectId !== "none") formData.set("projectId", projectId);
 
-      const result = await updateTask(task.id, formData);
-      if (result.success) {
+      const [taskResult, labelsResult] = await Promise.all([
+        updateTask(task.id, formData),
+        setTaskLabels(task.id, selectedLabelIds),
+      ]);
+
+      if (taskResult.success && labelsResult.success) {
         toast.success("Task updated");
         onOpenChange(false);
       } else {
-        toast.error(result.error);
+        const error = !taskResult.success
+          ? taskResult.error
+          : !labelsResult.success
+            ? labelsResult.error
+            : "Unknown error";
+        toast.error(error);
       }
     });
   }
@@ -120,7 +132,7 @@ export function TaskEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>
           <DialogDescription className="sr-only">
@@ -275,6 +287,13 @@ export function TaskEditDialog({
               </Select>
             </div>
           </div>
+
+          {/* Labels */}
+          <LabelPicker
+            labels={labels}
+            selectedIds={selectedLabelIds}
+            onChange={setSelectedLabelIds}
+          />
         </div>
 
         {/* Footer */}

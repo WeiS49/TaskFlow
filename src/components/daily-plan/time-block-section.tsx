@@ -15,7 +15,7 @@ interface TimeBlockSectionProps {
   timeBlock: TimeBlock;
   tasks: TaskWithRelations[];
   projects: Project[];
-  labels?: Label[];
+  labels: Label[];
 }
 
 export function TimeBlockSection({ timeBlock, tasks, projects, labels }: TimeBlockSectionProps) {
@@ -31,6 +31,7 @@ export function TimeBlockSection({ timeBlock, tasks, projects, labels }: TimeBlo
       <div className="space-y-2.5">
         {tasks.map((task) => (
           <TaskCard key={task.id} task={task} projects={projects} labels={labels} />
+
         ))}
       </div>
 

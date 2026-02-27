@@ -13,10 +13,10 @@ import type { Project, Label } from "@/db/schema";
 interface TaskCardProps {
   task: TaskWithRelations;
   projects: Project[];
-  labels?: Label[];
+  labels: Label[];
 }
 
-export function TaskCard({ task, projects }: TaskCardProps) {
+export function TaskCard({ task, projects, labels }: TaskCardProps) {
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const isDone = task.status === "done";
@@ -86,6 +86,7 @@ export function TaskCard({ task, projects }: TaskCardProps) {
       <TaskEditDialog
         task={task}
         projects={projects}
+        labels={labels}
         open={editOpen}
         onOpenChange={setEditOpen}
       />

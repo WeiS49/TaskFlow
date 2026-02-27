@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getTodayTasks, getProjects } from "@/db/queries";
+import { getTodayTasks, getProjects, getLabels } from "@/db/queries";
 import { DayHeader } from "@/components/daily-plan/day-header";
 import { TimeBlockSection } from "@/components/daily-plan/time-block-section";
 import { TIME_BLOCKS } from "@/lib/constants";
@@ -9,9 +9,10 @@ export default async function TodayPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const [{ tasks, grouped }, projects] = await Promise.all([
+  const [{ tasks, grouped }, projects, labels] = await Promise.all([
     getTodayTasks(session.user.id),
     getProjects(session.user.id),
+    getLabels(session.user.id),
   ]);
 
   return (
@@ -24,6 +25,7 @@ export default async function TodayPage() {
           timeBlock={block}
           tasks={grouped[block]}
           projects={projects}
+          labels={labels}
         />
       ))}
     </div>
