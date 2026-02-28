@@ -1,6 +1,6 @@
-import { and, eq, isNull, ilike, lte, or, desc, asc } from "drizzle-orm";
+import { and, eq, isNull, ilike, lte, or, desc, asc, gte, lt } from "drizzle-orm";
 import { db } from "@/db";
-import { tasks, projects, labels } from "@/db/schema";
+import { tasks, projects, labels, dailyReviews } from "@/db/schema";
 import type { TimeBlock } from "@/lib/constants";
 
 export async function getTodayTasks(userId: string) {
@@ -163,5 +163,52 @@ export async function searchProjects(userId: string, query: string) {
     ),
     orderBy: [asc(projects.position)],
     limit: 10,
+  });
+}
+
+export async function getCompletedToday(userId: string) {
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+
+  return db.query.tasks.findMany({
+    where: and(
+      eq(tasks.userId, userId),
+      isNull(tasks.deletedAt),
+      eq(tasks.status, "done"),
+      gte(tasks.completedAt, startOfDay),
+      lt(tasks.completedAt, endOfDay),
+    ),
+    with: {
+      project: true,
+    },
+    orderBy: [desc(tasks.completedAt)],
+  });
+}
+
+export async function getTomorrowTasks(userId: string) {
+  const today = new Date();
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+  return db.query.tasks.findMany({
+    where: and(
+      eq(tasks.userId, userId),
+      isNull(tasks.deletedAt),
+      eq(tasks.startDate, tomorrowStr),
+    ),
+    with: {
+      project: true,
+    },
+    orderBy: [asc(tasks.position)],
+  });
+}
+
+export async function getDailyReview(userId: string, date: string) {
+  return db.query.dailyReviews.findFirst({
+    where: and(
+      eq(dailyReviews.userId, userId),
+      eq(dailyReviews.date, date),
+    ),
   });
 }

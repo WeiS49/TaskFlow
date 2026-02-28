@@ -9,6 +9,7 @@ import {
   integer,
   date,
   primaryKey,
+  unique,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, type InferSelectModel, type InferInsertModel } from "drizzle-orm";
@@ -109,6 +110,22 @@ export const taskLabels = pgTable(
   (t) => [primaryKey({ columns: [t.taskId, t.labelId] })],
 );
 
+export const dailyReviews = pgTable("daily_reviews", {
+  id: uuid().defaultRandom().primaryKey(),
+  userId: uuid()
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  date: date({ mode: "string" }).notNull(),
+  energyLevel: integer(),
+  mood: varchar({ length: 10 }),
+  summary: text(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp({ withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+}, (t) => [unique().on(t.userId, t.date)]);
+
 // ---------------------------------------------------------------------------
 // Relations
 // ---------------------------------------------------------------------------
@@ -117,6 +134,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   projects: many(projects),
   tasks: many(tasks),
   labels: many(labels),
+  dailyReviews: many(dailyReviews),
 }));
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -152,6 +170,10 @@ export const taskLabelsRelations = relations(taskLabels, ({ one }) => ({
   }),
 }));
 
+export const dailyReviewsRelations = relations(dailyReviews, ({ one }) => ({
+  user: one(users, { fields: [dailyReviews.userId], references: [users.id] }),
+}));
+
 // ---------------------------------------------------------------------------
 // Type exports
 // ---------------------------------------------------------------------------
@@ -164,3 +186,5 @@ export type NewUser = InferInsertModel<typeof users>;
 export type NewProject = InferInsertModel<typeof projects>;
 export type NewTask = InferInsertModel<typeof tasks>;
 export type NewLabel = InferInsertModel<typeof labels>;
+export type DailyReview = InferSelectModel<typeof dailyReviews>;
+export type NewDailyReview = InferInsertModel<typeof dailyReviews>;

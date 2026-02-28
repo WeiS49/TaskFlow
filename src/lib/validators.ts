@@ -36,3 +36,10 @@ export const labelCreateSchema = z.object({
   name: z.string().min(1).max(100),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default("#6B7280"),
 });
+
+// Daily Review
+export const dailyReviewSchema = z.object({
+  energyLevel: z.number().int().min(1).max(5).optional(),
+  mood: z.string().max(10).optional(),
+  summary: z.string().max(1000).optional(),
+});
