@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getProjectWithTasks, getProjects, getLabels } from "@/db/queries";
 import { TaskCard } from "@/components/task/task-card";
+import { TaskForm } from "@/components/task/task-form";
 import { ProjectActions } from "./project-actions";
 import type { TaskWithRelations } from "@/db/queries";
 
@@ -39,24 +40,26 @@ export default async function ProjectPage({
         <ProjectActions project={project} />
       </div>
 
-      {tasks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-sm text-muted-foreground">
-            No tasks in this project yet.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {tasks.map((task: TaskWithRelations) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              projects={projects}
-              labels={labels}
-            />
-          ))}
-        </div>
+      <div className="space-y-2.5">
+        {tasks.map((task: TaskWithRelations) => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            projects={projects}
+            labels={labels}
+          />
+        ))}
+      </div>
+
+      {tasks.length === 0 && (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          No tasks in this project yet.
+        </p>
       )}
+
+      <div className="mt-4">
+        <TaskForm defaultProjectId={project.id} projects={projects} />
+      </div>
     </div>
   );
 }

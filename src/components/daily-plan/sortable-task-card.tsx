@@ -34,6 +34,7 @@ export function SortableTaskCard({ task, projects, labels }: SortableTaskCardPro
       <div
         {...attributes}
         {...listeners}
+        suppressHydrationWarning
         className="absolute -left-7 top-1/2 -translate-y-1/2 opacity-0 group-hover/sortable:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
       >
         <GripVertical className="h-4 w-4 text-muted-foreground" />

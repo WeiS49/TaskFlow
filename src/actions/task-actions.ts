@@ -37,6 +37,7 @@ export async function createTask(
 
     revalidatePath("/today");
     revalidatePath("/tasks");
+    if (task.projectId) revalidatePath(`/projects/${task.projectId}`);
     return { success: true, data: task };
   } catch (error) {
     return {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { TaskCard } from "@/components/task/task-card";
+import { TaskForm } from "@/components/task/task-form";
 import { TaskFilters } from "@/components/task/task-filters";
 import type { TaskWithRelations } from "@/db/queries";
 import type { Project, Label } from "@/db/schema";
@@ -38,6 +39,8 @@ export function TasksPageClient({ tasks, projects, labels }: TasksPageClientProp
           <TaskCard key={task.id} task={task} projects={projects} labels={labels} />
         ))}
       </div>
+
+      <TaskForm projects={projects} />
 
       {filtered.length === 0 && (
         <p className="text-center text-muted-foreground py-12">No tasks match your filters</p>

@@ -109,6 +109,7 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
     const activeId = active.id as string;
     const overId = over.id as string;
 
+    // Read current state to compute new order, then update state and persist separately
     setGrouped((prev) => {
       const container = findContainer(prev, activeId);
       if (!container) return prev;
@@ -118,7 +119,6 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
 
       let newIndex: number;
       if (TIME_BLOCKS.includes(overId as TimeBlock)) {
-        // Dropped on empty container area
         newIndex = tasks.length - 1;
       } else {
         newIndex = tasks.findIndex((t) => t.id === overId);
@@ -128,24 +128,22 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
       if (oldIndex !== newIndex) {
         const [moved] = tasks.splice(oldIndex, 1);
         tasks.splice(newIndex, 0, moved);
-        const updated = { ...prev, [container]: tasks };
 
-        // Calculate new position and persist
         const position = calcPosition(
           tasks.filter((t) => t.id !== activeId),
           newIndex,
         );
-        reorderTask(activeId, position, container);
+        // Defer server action to avoid setState-during-render
+        queueMicrotask(() => reorderTask(activeId, position, container));
 
-        return updated;
+        return { ...prev, [container]: tasks };
       }
 
-      // Even if index didn't change, the container might have changed during dragOver
       const position = calcPosition(
         tasks.filter((t) => t.id !== activeId),
         oldIndex,
       );
-      reorderTask(activeId, position, container);
+      queueMicrotask(() => reorderTask(activeId, position, container));
 
       return prev;
     });
