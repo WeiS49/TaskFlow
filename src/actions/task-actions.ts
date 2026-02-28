@@ -7,6 +7,7 @@ import { tasks, taskLabels } from "@/db/schema";
 import { taskCreateSchema, taskUpdateSchema } from "@/lib/validators";
 import { requireAuth, type ActionResult } from "@/lib/auth-utils";
 import type { Task } from "@/db/schema";
+import type { TimeBlock } from "@/lib/constants";
 
 export async function createTask(
   _prev: ActionResult<Task> | null,
@@ -152,6 +153,37 @@ export async function toggleTaskStatus(
       success: false,
       error:
         error instanceof Error ? error.message : "Failed to toggle task status",
+    };
+  }
+}
+
+export async function reorderTask(
+  taskId: string,
+  position: number,
+  timeBlock: TimeBlock,
+): Promise<ActionResult<Task>> {
+  try {
+    const userId = await requireAuth();
+
+    const [task] = await db
+      .update(tasks)
+      .set({ position, timeBlock })
+      .where(
+        and(eq(tasks.id, taskId), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
+      )
+      .returning();
+
+    if (!task) {
+      return { success: false, error: "Task not found" };
+    }
+
+    revalidatePath("/today");
+    revalidatePath("/tasks");
+    return { success: true, data: task };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to reorder task",
     };
   }
 }

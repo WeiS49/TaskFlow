@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getTodayTasks, getProjects, getLabels } from "@/db/queries";
 import { DayHeader } from "@/components/daily-plan/day-header";
-import { TimeBlockSection } from "@/components/daily-plan/time-block-section";
-import { TIME_BLOCKS } from "@/lib/constants";
+import { TodayDndWrapper } from "@/components/daily-plan/today-dnd-wrapper";
 
 export default async function TodayPage() {
   const session = await auth();
@@ -18,16 +17,7 @@ export default async function TodayPage() {
   return (
     <div className="space-y-6 px-10 py-8">
       <DayHeader tasks={tasks} />
-
-      {TIME_BLOCKS.map((block) => (
-        <TimeBlockSection
-          key={block}
-          timeBlock={block}
-          tasks={grouped[block]}
-          projects={projects}
-          labels={labels}
-        />
-      ))}
+      <TodayDndWrapper grouped={grouped} projects={projects} labels={labels} />
     </div>
   );
 }
