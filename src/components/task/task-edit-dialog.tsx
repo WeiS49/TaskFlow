@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { updateTask, deleteTask, setTaskLabels } from "@/actions/task-actions";
 import {
@@ -28,6 +28,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { LabelPicker } from "@/components/label/label-picker";
 import { SubtaskList } from "@/components/task/subtask-list";
 import { cn } from "@/lib/utils";
@@ -86,6 +91,17 @@ export function TaskEditDialog({
     task.taskLabels.map((tl) => tl.label.id),
   );
 
+  const hasAdvancedData =
+    (task.timeBlock as TimeBlock) !== "unscheduled" ||
+    !!task.startDate ||
+    !!task.dueDate ||
+    !!task.estimatedMinutes ||
+    (task.projectId !== null && task.projectId !== undefined) ||
+    task.taskLabels.length > 0 ||
+    (task.subtasks ?? []).length > 0;
+
+  const [advancedOpen, setAdvancedOpen] = useState(hasAdvancedData);
+
   function handleSave() {
     startTransition(async () => {
       const formData = new FormData();
@@ -142,11 +158,30 @@ export function TaskEditDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Basic fields — always visible */}
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Task title"
           />
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">
+              Priority
+            </label>
+            <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PRIORITIES.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {PRIORITY_LABELS[p]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <Textarea
             value={description}
@@ -155,154 +190,146 @@ export function TaskEditDialog({
             className="min-h-20"
           />
 
-          <div className="grid grid-cols-2 gap-3">
-            {/* Priority */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Priority
-              </label>
-              <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {PRIORITY_LABELS[p]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Advanced fields — collapsible */}
+          <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-between text-xs text-muted-foreground hover:text-foreground">
+                {advancedOpen ? "Less settings" : "More settings"}
+                <ChevronDown className={cn("h-4 w-4 transition-transform", advancedOpen && "rotate-180")} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                {/* Time Block */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Time Block
+                  </label>
+                  <Select value={timeBlock} onValueChange={(v) => setTimeBlock(v as TimeBlock)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_BLOCKS.map((tb) => (
+                        <SelectItem key={tb} value={tb}>
+                          {TIME_BLOCK_LABELS[tb]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Time Block */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Time Block
-              </label>
-              <Select value={timeBlock} onValueChange={(v) => setTimeBlock(v as TimeBlock)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIME_BLOCKS.map((tb) => (
-                    <SelectItem key={tb} value={tb}>
-                      {TIME_BLOCK_LABELS[tb]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Start Date */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Start Date
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground",
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "MMM d, yyyy") : "Pick date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Due Date */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Due Date
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dueDate && "text-muted-foreground",
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "MMM d, yyyy") : "Pick date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={setDueDate}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Estimated Minutes */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Est. Minutes
-              </label>
-              <Input
-                type="number"
-                min={1}
-                value={estimatedMinutes}
-                onChange={(e) => setEstimatedMinutes(e.target.value)}
-                placeholder="30"
-              />
-            </div>
-
-            {/* Project */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Project
-              </label>
-              <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No project</SelectItem>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <span
-                        className="mr-1.5 inline-block h-2 w-2 rounded-full"
-                        style={{ backgroundColor: p.color }}
+                {/* Start Date */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Start Date
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground",
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "MMM d, yyyy") : "Pick date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
                       />
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-          {/* Labels */}
-          <LabelPicker
-            labels={labels}
-            selectedIds={selectedLabelIds}
-            onChange={setSelectedLabelIds}
-          />
+                {/* Due Date */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Due Date
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dueDate && "text-muted-foreground",
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dueDate ? format(dueDate, "MMM d, yyyy") : "Pick date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dueDate}
+                        onSelect={setDueDate}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-          {/* Subtasks */}
-          <SubtaskList
-            subtasks={task.subtasks ?? []}
-            parentId={task.id}
-            projects={projects}
-            labels={labels}
-          />
+                {/* Estimated Minutes */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Est. Minutes
+                  </label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={estimatedMinutes}
+                    onChange={(e) => setEstimatedMinutes(e.target.value)}
+                    placeholder="30"
+                  />
+                </div>
+
+                {/* Project */}
+                <div className="space-y-1.5 col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Project
+                  </label>
+                  <Select value={projectId} onValueChange={setProjectId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No project</SelectItem>
+                      {projects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <span
+                            className="mr-1.5 inline-block h-2 w-2 rounded-full"
+                            style={{ backgroundColor: p.color }}
+                          />
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Labels */}
+              <LabelPicker
+                labels={labels}
+                selectedIds={selectedLabelIds}
+                onChange={setSelectedLabelIds}
+              />
+
+              {/* Subtasks */}
+              <SubtaskList
+                subtasks={task.subtasks ?? []}
+                parentId={task.id}
+                projects={projects}
+                labels={labels}
+              />
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         {/* Footer */}
