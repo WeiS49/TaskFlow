@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte, or, desc, asc } from "drizzle-orm";
+import { and, eq, isNull, ilike, lte, or, desc, asc } from "drizzle-orm";
 import { db } from "@/db";
 import { tasks, projects, labels } from "@/db/schema";
 import type { TimeBlock } from "@/lib/constants";
@@ -15,6 +15,7 @@ export async function getTodayTasks(userId: string) {
     with: {
       project: true,
       taskLabels: { with: { label: true } },
+      subtasks: true,
     },
     orderBy: [asc(tasks.position), asc(tasks.createdAt)],
   });
@@ -40,6 +41,7 @@ export async function getAllTasks(userId: string) {
     with: {
       project: true,
       taskLabels: { with: { label: true } },
+      subtasks: true,
     },
     orderBy: [desc(tasks.createdAt)],
   });
@@ -69,6 +71,7 @@ export async function getTaskById(id: string, userId: string) {
     with: {
       project: true,
       taskLabels: { with: { label: true } },
+      subtasks: true,
     },
   });
 }
@@ -98,6 +101,7 @@ export async function getFilteredTasks(
     with: {
       project: true,
       taskLabels: { with: { label: true } },
+      subtasks: true,
     },
     orderBy: [desc(tasks.createdAt)],
   });
@@ -123,9 +127,41 @@ export async function getProjectWithTasks(projectId: string, userId: string) {
     with: {
       project: true,
       taskLabels: { with: { label: true } },
+      subtasks: true,
     },
     orderBy: [asc(tasks.position), asc(tasks.createdAt)],
   });
 
   return { project, tasks: projectTasks };
+}
+
+export async function searchTasks(userId: string, query: string) {
+  return db.query.tasks.findMany({
+    where: and(
+      eq(tasks.userId, userId),
+      isNull(tasks.deletedAt),
+      or(
+        ilike(tasks.title, `%${query}%`),
+        ilike(tasks.description, `%${query}%`),
+      ),
+    ),
+    with: {
+      project: true,
+      taskLabels: { with: { label: true } },
+    },
+    orderBy: [desc(tasks.createdAt)],
+    limit: 10,
+  });
+}
+
+export async function searchProjects(userId: string, query: string) {
+  return db.query.projects.findMany({
+    where: and(
+      eq(projects.userId, userId),
+      isNull(projects.deletedAt),
+      ilike(projects.name, `%${query}%`),
+    ),
+    orderBy: [asc(projects.position)],
+    limit: 10,
+  });
 }

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { LabelPicker } from "@/components/label/label-picker";
+import { SubtaskList } from "@/components/task/subtask-list";
 import { cn } from "@/lib/utils";
 import { PRIORITIES, TIME_BLOCKS, type Priority, type TimeBlock } from "@/lib/constants";
 import type { TaskWithRelations } from "@/db/queries";
@@ -293,6 +294,14 @@ export function TaskEditDialog({
             labels={labels}
             selectedIds={selectedLabelIds}
             onChange={setSelectedLabelIds}
+          />
+
+          {/* Subtasks */}
+          <SubtaskList
+            subtasks={task.subtasks ?? []}
+            parentId={task.id}
+            projects={projects}
+            labels={labels}
           />
         </div>
 

@@ -74,6 +74,12 @@ export function TaskCard({ task, projects, labels }: TaskCardProps) {
                 color={tl.label.color}
               />
             ))}
+            {task.subtasks && task.subtasks.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
+                ▸ {task.subtasks.filter((s) => s.status === "done").length}/
+                {task.subtasks.length} subtasks
+              </span>
+            )}
             {task.estimatedMinutes && (
               <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
                 ⏱ {task.estimatedMinutes}m
