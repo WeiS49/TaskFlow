@@ -6,18 +6,17 @@ import { SortableTaskCard } from "./sortable-task-card";
 import { TaskForm } from "@/components/task/task-form";
 import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/db/queries";
-import type { TimeBlock } from "@/lib/constants";
+import type { ScheduledTimeBlock } from "@/lib/constants";
 import type { Project, Label } from "@/db/schema";
 
-const TIME_BLOCK_LABELS: Record<TimeBlock, string> = {
+const TIME_BLOCK_LABELS: Record<ScheduledTimeBlock, string> = {
   morning: "Morning",
   afternoon: "Afternoon",
   evening: "Evening",
-  unscheduled: "Unscheduled",
 };
 
 interface SortableTimeBlockProps {
-  timeBlock: TimeBlock;
+  timeBlock: ScheduledTimeBlock;
   tasks: TaskWithRelations[];
   projects: Project[];
   labels: Label[];

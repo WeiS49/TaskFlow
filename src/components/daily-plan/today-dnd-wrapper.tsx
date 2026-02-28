@@ -18,21 +18,21 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { SortableTimeBlock } from "./sortable-time-block";
 import { TaskCard } from "@/components/task/task-card";
 import { reorderTask } from "@/actions/task-actions";
-import { TIME_BLOCKS, type TimeBlock } from "@/lib/constants";
+import { SCHEDULED_TIME_BLOCKS, type ScheduledTimeBlock } from "@/lib/constants";
 import type { TaskWithRelations } from "@/db/queries";
 import type { Project, Label } from "@/db/schema";
 
 interface TodayDndWrapperProps {
-  grouped: Record<TimeBlock, TaskWithRelations[]>;
+  grouped: Record<ScheduledTimeBlock, TaskWithRelations[]>;
   projects: Project[];
   labels: Label[];
 }
 
 function findContainer(
-  grouped: Record<TimeBlock, TaskWithRelations[]>,
+  grouped: Record<ScheduledTimeBlock, TaskWithRelations[]>,
   taskId: string,
-): TimeBlock | null {
-  for (const block of TIME_BLOCKS) {
+): ScheduledTimeBlock | null {
+  for (const block of SCHEDULED_TIME_BLOCKS) {
     if (grouped[block].some((t) => t.id === taskId)) {
       return block;
     }
@@ -73,9 +73,9 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
       if (!fromBlock) return prev;
 
       // Determine target container
-      let toBlock: TimeBlock;
-      if (TIME_BLOCKS.includes(overId as TimeBlock)) {
-        toBlock = overId as TimeBlock;
+      let toBlock: ScheduledTimeBlock;
+      if (SCHEDULED_TIME_BLOCKS.includes(overId as ScheduledTimeBlock)) {
+        toBlock = overId as ScheduledTimeBlock;
       } else {
         const found = findContainer(prev, overId);
         if (!found) return prev;
@@ -118,7 +118,7 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
       const oldIndex = tasks.findIndex((t) => t.id === activeId);
 
       let newIndex: number;
-      if (TIME_BLOCKS.includes(overId as TimeBlock)) {
+      if (SCHEDULED_TIME_BLOCKS.includes(overId as ScheduledTimeBlock)) {
         newIndex = tasks.length - 1;
       } else {
         newIndex = tasks.findIndex((t) => t.id === overId);
@@ -157,7 +157,7 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      {TIME_BLOCKS.map((block) => (
+      {SCHEDULED_TIME_BLOCKS.map((block) => (
         <SortableTimeBlock
           key={block}
           timeBlock={block}

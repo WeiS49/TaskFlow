@@ -1,7 +1,8 @@
 import { and, eq, isNull, ilike, lte, or, desc, asc, gte, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { tasks, projects, labels, dailyReviews } from "@/db/schema";
-import type { TimeBlock } from "@/lib/constants";
+import type { ScheduledTimeBlock } from "@/lib/constants";
+import { SCHEDULED_TIME_BLOCKS } from "@/lib/constants";
 
 export async function getTodayTasks(userId: string) {
   const today = new Date().toISOString().split("T")[0];
@@ -20,16 +21,17 @@ export async function getTodayTasks(userId: string) {
     orderBy: [asc(tasks.position), asc(tasks.createdAt)],
   });
 
-  const grouped: Record<TimeBlock, typeof allTasks> = {
+  const grouped: Record<ScheduledTimeBlock, typeof allTasks> = {
     morning: [],
     afternoon: [],
     evening: [],
-    unscheduled: [],
   };
 
   for (const task of allTasks) {
-    const block = (task.timeBlock as TimeBlock) || "unscheduled";
-    grouped[block].push(task);
+    const block = task.timeBlock as ScheduledTimeBlock;
+    if (SCHEDULED_TIME_BLOCKS.includes(block)) {
+      grouped[block].push(task);
+    }
   }
 
   return { tasks: allTasks, grouped };
