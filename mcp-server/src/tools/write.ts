@@ -8,7 +8,6 @@ import {
   PRIORITIES,
   TIME_BLOCKS,
 } from "../schema.js";
-import { getToday } from "../utils.js";
 
 export function registerWriteTools(
   server: McpServer,

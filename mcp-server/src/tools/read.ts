@@ -4,7 +4,6 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Db } from "../db.js";
 import {
   tasks,
-  type Task,
   type TimeBlock,
   TASK_STATUSES,
   PRIORITIES,
