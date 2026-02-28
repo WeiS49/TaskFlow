@@ -20,9 +20,10 @@ interface SortableTimeBlockProps {
   tasks: TaskWithRelations[];
   projects: Project[];
   labels: Label[];
+  onComplete?: (taskId: string) => void;
 }
 
-export function SortableTimeBlock({ timeBlock, tasks, projects, labels }: SortableTimeBlockProps) {
+export function SortableTimeBlock({ timeBlock, tasks, projects, labels, onComplete }: SortableTimeBlockProps) {
   const { setNodeRef, isOver } = useDroppable({ id: timeBlock });
 
   return (
@@ -43,7 +44,7 @@ export function SortableTimeBlock({ timeBlock, tasks, projects, labels }: Sortab
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <SortableTaskCard key={task.id} task={task} projects={projects} labels={labels} />
+            <SortableTaskCard key={task.id} task={task} projects={projects} labels={labels} onComplete={onComplete} />
           ))}
         </SortableContext>
       </div>

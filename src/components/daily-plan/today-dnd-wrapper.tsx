@@ -51,6 +51,16 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
   const [grouped, setGrouped] = useState(initialGrouped);
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
 
+  const handleComplete = useCallback((taskId: string) => {
+    setGrouped((prev) => {
+      const updated = { ...prev };
+      for (const block of SCHEDULED_TIME_BLOCKS) {
+        updated[block] = prev[block].filter((t) => t.id !== taskId);
+      }
+      return updated;
+    });
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
@@ -164,6 +174,7 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
           tasks={grouped[block]}
           projects={projects}
           labels={labels}
+          onComplete={handleComplete}
         />
       ))}
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
+import { CheckCircle2, ArrowRight, Sparkles, Undo2 } from "lucide-react";
 import { DailyQuote } from "./daily-quote";
 import { EnergySelector } from "./energy-selector";
 import { MoodSelector } from "./mood-selector";
 import { upsertDailyReview } from "@/actions/daily-review-actions";
+import { toggleTaskStatus } from "@/actions/task-actions";
 import { useCallback, useRef, useState, useTransition } from "react";
 import type { Task, Project, DailyReview } from "@/db/schema";
 
@@ -82,9 +83,9 @@ export function ReviewPanel({ completedTasks, tomorrowTasks, review, date }: Rev
         ) : (
           <ul className="space-y-1.5 pl-5">
             {completedTasks.map((task) => (
-              <li key={task.id} className="flex items-start gap-2">
+              <li key={task.id} className="group/restore flex items-start gap-2">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <span className="text-xs text-foreground line-through opacity-70">
                     {task.title}
                   </span>
@@ -97,6 +98,17 @@ export function ReviewPanel({ completedTasks, tomorrowTasks, review, date }: Rev
                     </span>
                   )}
                 </div>
+                <button
+                  onClick={() => {
+                    startTransition(async () => {
+                      await toggleTaskStatus(task.id);
+                    });
+                  }}
+                  className="shrink-0 opacity-0 group-hover/restore:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                  title="Restore task"
+                >
+                  <Undo2 className="h-3 w-3" />
+                </button>
               </li>
             ))}
           </ul>

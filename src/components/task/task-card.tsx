@@ -14,9 +14,10 @@ interface TaskCardProps {
   task: TaskWithRelations;
   projects: Project[];
   labels: Label[];
+  onComplete?: (taskId: string) => void;
 }
 
-export function TaskCard({ task, projects, labels }: TaskCardProps) {
+export function TaskCard({ task, projects, labels, onComplete }: TaskCardProps) {
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const isDone = task.status === "done";
@@ -24,6 +25,9 @@ export function TaskCard({ task, projects, labels }: TaskCardProps) {
   function handleToggle() {
     startTransition(async () => {
       await toggleTaskStatus(task.id);
+      if (!isDone && onComplete) {
+        onComplete(task.id);
+      }
     });
   }
 
