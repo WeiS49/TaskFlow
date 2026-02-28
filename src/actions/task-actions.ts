@@ -189,6 +189,36 @@ export async function reorderTask(
   }
 }
 
+export async function reorderProjectTask(
+  taskId: string,
+  position: number,
+): Promise<ActionResult<Task>> {
+  try {
+    const userId = await requireAuth();
+
+    const [task] = await db
+      .update(tasks)
+      .set({ position })
+      .where(
+        and(eq(tasks.id, taskId), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
+      )
+      .returning();
+
+    if (!task) {
+      return { success: false, error: "Task not found" };
+    }
+
+    if (task.projectId) revalidatePath(`/projects/${task.projectId}`);
+    revalidatePath("/tasks");
+    return { success: true, data: task };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to reorder task",
+    };
+  }
+}
+
 export async function setTaskLabels(
   taskId: string,
   labelIds: string[],

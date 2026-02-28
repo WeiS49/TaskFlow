@@ -1,10 +1,9 @@
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getProjectWithTasks, getProjects, getLabels } from "@/db/queries";
-import { TaskCard } from "@/components/task/task-card";
 import { TaskForm } from "@/components/task/task-form";
+import { ProjectDndWrapper } from "@/components/project/project-dnd-wrapper";
 import { ProjectActions } from "./project-actions";
-import type { TaskWithRelations } from "@/db/queries";
 
 export default async function ProjectPage({
   params,
@@ -40,15 +39,8 @@ export default async function ProjectPage({
         <ProjectActions project={project} />
       </div>
 
-      <div className="space-y-2.5">
-        {tasks.map((task: TaskWithRelations) => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            projects={projects}
-            labels={labels}
-          />
-        ))}
+      <div className="pl-7">
+        <ProjectDndWrapper tasks={tasks} projects={projects} labels={labels} />
       </div>
 
       {tasks.length === 0 && (
