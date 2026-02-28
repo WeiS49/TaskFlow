@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/sidebar";
+import { CommandSearch } from "@/components/search/command-search";
 import { Toaster } from "sonner";
 
 export default async function AppLayout({
@@ -17,6 +18,7 @@ export default async function AppLayout({
       <main className="flex-1 overflow-y-auto border-l border-border">
         {children}
       </main>
+      <CommandSearch />
       <Toaster richColors position="bottom-right" />
     </div>
   );
