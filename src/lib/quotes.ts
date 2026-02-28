@@ -1,0 +1,61 @@
+const quotes = [
+  { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+  { text: "It is not enough to be busy; so are the ants. The question is: what are we busy about?", author: "Henry David Thoreau" },
+  { text: "Focus on being productive instead of busy.", author: "Tim Ferriss" },
+  { text: "Do the hard jobs first. The easy jobs will take care of themselves.", author: "Dale Carnegie" },
+  { text: "Amateurs sit and wait for inspiration, the rest of us just get up and go to work.", author: "Stephen King" },
+  { text: "You don't have to see the whole staircase, just take the first step.", author: "Martin Luther King Jr." },
+  { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney" },
+  { text: "Start where you are. Use what you have. Do what you can.", author: "Arthur Ashe" },
+  { text: "Small daily improvements over time lead to stunning results.", author: "Robin Sharma" },
+  { text: "What you do today can improve all your tomorrows.", author: "Ralph Marston" },
+  { text: "It always seems impossible until it is done.", author: "Nelson Mandela" },
+  { text: "Action is the foundational key to all success.", author: "Pablo Picasso" },
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "Don't count the days, make the days count.", author: "Muhammad Ali" },
+  { text: "Either you run the day or the day runs you.", author: "Jim Rohn" },
+  { text: "Your future is created by what you do today, not tomorrow.", author: "Robert Kiyosaki" },
+  { text: "Progress, not perfection.", author: "Unknown" },
+  { text: "A year from now you may wish you had started today.", author: "Karen Lamb" },
+  { text: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb" },
+  { text: "Don't wait. The time will never be just right.", author: "Napoleon Hill" },
+  { text: "Well done is better than well said.", author: "Benjamin Franklin" },
+  { text: "Productivity is never an accident. It is always the result of a commitment to excellence.", author: "Paul J. Meyer" },
+  { text: "You miss 100% of the shots you don't take.", author: "Wayne Gretzky" },
+  { text: "The only limit to our realization of tomorrow is our doubts of today.", author: "Franklin D. Roosevelt" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+  { text: "Done is better than perfect.", author: "Sheryl Sandberg" },
+  { text: "Nothing is less productive than to make more efficient what should not be done at all.", author: "Peter Drucker" },
+  { text: "Simplicity boils down to two steps: Identify the essential. Eliminate the rest.", author: "Leo Babauta" },
+  { text: "Until we can manage time, we can manage nothing else.", author: "Peter Drucker" },
+  { text: "Time is what we want most, but what we use worst.", author: "William Penn" },
+  { text: "If you spend too much time thinking about a thing, you'll never get it done.", author: "Bruce Lee" },
+  { text: "One thing at a time. Most important thing first. Start now.", author: "Caroline Webb" },
+  { text: "The key is not to prioritize what's on your schedule, but to schedule your priorities.", author: "Stephen Covey" },
+  { text: "Ordinary people think merely of spending time. Great people think of using it.", author: "Arthur Schopenhauer" },
+  { text: "Lost time is never found again.", author: "Benjamin Franklin" },
+  { text: "Take rest; a field that has rested gives a bountiful crop.", author: "Ovid" },
+  { text: "Almost everything will work again if you unplug it for a few minutes, including you.", author: "Anne Lamott" },
+  { text: "Rest when you're weary. Refresh and renew yourself, your body, your mind, your spirit.", author: "Ralph Marston" },
+  { text: "You can't pour from an empty cup. Take care of yourself first.", author: "Unknown" },
+  { text: "Finish each day and be done with it. Tomorrow is a new day.", author: "Ralph Waldo Emerson" },
+  { text: "Be not afraid of going slowly, be afraid only of standing still.", author: "Chinese Proverb" },
+  { text: "Continuous improvement is better than delayed perfection.", author: "Mark Twain" },
+  { text: "Success is the sum of small efforts repeated day in and day out.", author: "Robert Collier" },
+  { text: "The journey of a thousand miles begins with one step.", author: "Lao Tzu" },
+  { text: "Every moment is a fresh beginning.", author: "T.S. Eliot" },
+  { text: "What we fear doing most is usually what we most need to do.", author: "Tim Ferriss" },
+  { text: "Discipline is choosing between what you want now and what you want most.", author: "Abraham Lincoln" },
+  { text: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+  { text: "Think of many things; do one.", author: "Portuguese Proverb" },
+  { text: "Plans are nothing; planning is everything.", author: "Dwight D. Eisenhower" },
+];
+
+export function getQuoteForDate(dateStr: string) {
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = ((hash << 5) - hash + dateStr.charCodeAt(i)) | 0;
+  }
+  const index = Math.abs(hash) % quotes.length;
+  return quotes[index];
+}
