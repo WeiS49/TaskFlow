@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte, or, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { projects, labels, tasks } from "@/db/schema";
 import { SidebarNav } from "./sidebar-nav";
@@ -24,7 +24,7 @@ export async function Sidebar({ user }: SidebarProps) {
         eq(tasks.userId, user.id),
         isNull(tasks.deletedAt),
         ne(tasks.status, "done"),
-        or(lte(tasks.startDate, today), isNull(tasks.startDate)),
+        eq(tasks.startDate, today),
       ),
       columns: { id: true },
     }),

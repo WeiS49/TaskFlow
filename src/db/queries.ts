@@ -1,4 +1,4 @@
-import { and, eq, isNull, ilike, lte, or, desc, asc, gte, lt } from "drizzle-orm";
+import { and, eq, isNull, ilike, or, desc, asc, gte, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { tasks, projects, labels, dailyReviews } from "@/db/schema";
 import type { ScheduledTimeBlock } from "@/lib/constants";
@@ -11,7 +11,7 @@ export async function getTodayTasks(userId: string) {
     where: and(
       eq(tasks.userId, userId),
       isNull(tasks.deletedAt),
-      or(lte(tasks.startDate, today), isNull(tasks.startDate)),
+      eq(tasks.startDate, today),
     ),
     with: {
       project: true,
