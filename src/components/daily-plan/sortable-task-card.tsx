@@ -7,16 +7,18 @@ import { GripVertical } from "lucide-react";
 import { TaskCard } from "@/components/task/task-card";
 import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/db/queries";
-import type { Project, Label } from "@/db/schema";
+import type { Project, Label, Task } from "@/db/schema";
 
 interface SortableTaskCardProps {
   task: TaskWithRelations;
   projects: Project[];
   labels: Label[];
   onComplete?: (taskId: string) => void;
+  onDelete?: (taskId: string) => void;
+  onTaskUpdated?: (task: Task) => void;
 }
 
-export function SortableTaskCard({ task, projects, labels, onComplete }: SortableTaskCardProps) {
+export function SortableTaskCard({ task, projects, labels, onComplete, onDelete, onTaskUpdated }: SortableTaskCardProps) {
   const [isCompleting, setIsCompleting] = useState(false);
   const {
     attributes,
@@ -57,7 +59,7 @@ export function SortableTaskCard({ task, projects, labels, onComplete }: Sortabl
       >
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </div>
-      <TaskCard task={task} projects={projects} labels={labels} onComplete={onComplete ? handleComplete : undefined} />
+      <TaskCard task={task} projects={projects} labels={labels} onComplete={onComplete ? handleComplete : undefined} onDelete={onDelete} onTaskUpdated={onTaskUpdated} />
     </div>
   );
 }

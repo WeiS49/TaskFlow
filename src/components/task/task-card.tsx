@@ -8,16 +8,18 @@ import { ProjectBadge } from "@/components/project/project-badge";
 import { LabelBadge } from "@/components/label/label-badge";
 import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/db/queries";
-import type { Project, Label } from "@/db/schema";
+import type { Project, Label, Task } from "@/db/schema";
 
 interface TaskCardProps {
   task: TaskWithRelations;
   projects: Project[];
   labels: Label[];
   onComplete?: (taskId: string) => void;
+  onDelete?: (taskId: string) => void;
+  onTaskUpdated?: (task: Task) => void;
 }
 
-export function TaskCard({ task, projects, labels, onComplete }: TaskCardProps) {
+export function TaskCard({ task, projects, labels, onComplete, onDelete, onTaskUpdated }: TaskCardProps) {
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const isDone = task.status === "done";
@@ -99,6 +101,8 @@ export function TaskCard({ task, projects, labels, onComplete }: TaskCardProps) 
         labels={labels}
         open={editOpen}
         onOpenChange={setEditOpen}
+        onDelete={onDelete}
+        onTaskUpdated={onTaskUpdated}
       />
     </>
   );

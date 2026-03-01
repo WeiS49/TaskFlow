@@ -20,7 +20,7 @@ import { TaskCard } from "@/components/task/task-card";
 import { reorderTask } from "@/actions/task-actions";
 import { SCHEDULED_TIME_BLOCKS, type ScheduledTimeBlock } from "@/lib/constants";
 import type { TaskWithRelations } from "@/db/queries";
-import type { Project, Label } from "@/db/schema";
+import type { Project, Label, Task } from "@/db/schema";
 
 interface TodayDndWrapperProps {
   grouped: Record<ScheduledTimeBlock, TaskWithRelations[]>;
@@ -60,6 +60,65 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
       return updated;
     });
   }, []);
+
+  const handleDelete = useCallback((taskId: string) => {
+    setGrouped((prev) => {
+      const updated = { ...prev };
+      for (const block of SCHEDULED_TIME_BLOCKS) {
+        updated[block] = prev[block].filter((t) => t.id !== taskId);
+      }
+      return updated;
+    });
+  }, []);
+
+  const handleTaskUpdated = useCallback((task: Task) => {
+    const newBlock = (task.timeBlock as ScheduledTimeBlock) ?? "morning";
+    const validBlock = SCHEDULED_TIME_BLOCKS.includes(newBlock) ? newBlock : "morning";
+    setGrouped((prev) => {
+      const updated = { ...prev };
+      // Remove from old block
+      let found = false;
+      for (const block of SCHEDULED_TIME_BLOCKS) {
+        const idx = updated[block].findIndex((t) => t.id === task.id);
+        if (idx !== -1) {
+          const existing = updated[block][idx];
+          const updatedTask = {
+            ...existing,
+            ...task,
+            project: projects.find((p) => p.id === task.projectId) ?? null,
+            taskLabels: existing.taskLabels,
+            subtasks: existing.subtasks,
+          };
+          if (block === validBlock) {
+            // Same block — replace in place
+            updated[block] = [...updated[block]];
+            updated[block][idx] = updatedTask;
+          } else {
+            // Different block — move
+            updated[block] = updated[block].filter((t) => t.id !== task.id);
+            updated[validBlock] = [...updated[validBlock], updatedTask];
+          }
+          found = true;
+          break;
+        }
+      }
+      return found ? updated : prev;
+    });
+  }, [projects]);
+
+  const handleTaskCreated = useCallback((task: Task) => {
+    const block = (task.timeBlock as ScheduledTimeBlock) ?? "morning";
+    const taskWithRelations = {
+      ...task,
+      project: projects.find((p) => p.id === task.projectId) ?? null,
+      taskLabels: [],
+      subtasks: [],
+    };
+    setGrouped((prev) => ({
+      ...prev,
+      [block]: [...prev[block], taskWithRelations],
+    }));
+  }, [projects]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -175,6 +234,9 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
           projects={projects}
           labels={labels}
           onComplete={handleComplete}
+          onDelete={handleDelete}
+          onTaskCreated={handleTaskCreated}
+          onTaskUpdated={handleTaskUpdated}
         />
       ))}
 

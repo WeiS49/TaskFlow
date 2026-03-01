@@ -7,7 +7,7 @@ import { TaskForm } from "@/components/task/task-form";
 import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/db/queries";
 import type { ScheduledTimeBlock } from "@/lib/constants";
-import type { Project, Label } from "@/db/schema";
+import type { Project, Label, Task } from "@/db/schema";
 
 const TIME_BLOCK_LABELS: Record<ScheduledTimeBlock, string> = {
   morning: "Morning",
@@ -21,9 +21,12 @@ interface SortableTimeBlockProps {
   projects: Project[];
   labels: Label[];
   onComplete?: (taskId: string) => void;
+  onDelete?: (taskId: string) => void;
+  onTaskCreated?: (task: Task) => void;
+  onTaskUpdated?: (task: Task) => void;
 }
 
-export function SortableTimeBlock({ timeBlock, tasks, projects, labels, onComplete }: SortableTimeBlockProps) {
+export function SortableTimeBlock({ timeBlock, tasks, projects, labels, onComplete, onDelete, onTaskCreated, onTaskUpdated }: SortableTimeBlockProps) {
   const { setNodeRef, isOver } = useDroppable({ id: timeBlock });
 
   return (
@@ -44,13 +47,13 @@ export function SortableTimeBlock({ timeBlock, tasks, projects, labels, onComple
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <SortableTaskCard key={task.id} task={task} projects={projects} labels={labels} onComplete={onComplete} />
+            <SortableTaskCard key={task.id} task={task} projects={projects} labels={labels} onComplete={onComplete} onDelete={onDelete} onTaskUpdated={onTaskUpdated} />
           ))}
         </SortableContext>
       </div>
 
       <div className="pl-7">
-        <TaskForm defaultTimeBlock={timeBlock} projects={projects} />
+        <TaskForm defaultTimeBlock={timeBlock} projects={projects} onTaskCreated={onTaskCreated} />
       </div>
     </section>
   );

@@ -20,14 +20,16 @@ import {
 } from "@dnd-kit/sortable";
 import { SortableTaskCard } from "@/components/daily-plan/sortable-task-card";
 import { TaskCard } from "@/components/task/task-card";
+import { TaskForm } from "@/components/task/task-form";
 import { reorderProjectTask } from "@/actions/task-actions";
 import type { TaskWithRelations } from "@/db/queries";
-import type { Project, Label } from "@/db/schema";
+import type { Project, Label, Task } from "@/db/schema";
 
 interface ProjectDndWrapperProps {
   tasks: TaskWithRelations[];
   projects: Project[];
   labels: Label[];
+  projectId: string;
 }
 
 function calcPosition(tasks: TaskWithRelations[], targetIndex: number): number {
@@ -37,7 +39,7 @@ function calcPosition(tasks: TaskWithRelations[], targetIndex: number): number {
   return (tasks[targetIndex - 1].position + tasks[targetIndex].position) / 2;
 }
 
-export function ProjectDndWrapper({ tasks: initialTasks, projects, labels }: ProjectDndWrapperProps) {
+export function ProjectDndWrapper({ tasks: initialTasks, projects, labels, projectId }: ProjectDndWrapperProps) {
   const [tasks, setTasks] = useState(initialTasks);
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
 
@@ -46,6 +48,36 @@ export function ProjectDndWrapper({ tasks: initialTasks, projects, labels }: Pro
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  const handleDelete = useCallback((taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  }, []);
+
+  const handleTaskUpdated = useCallback((task: Task) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id
+          ? {
+              ...t,
+              ...task,
+              project: projects.find((p) => p.id === task.projectId) ?? null,
+              taskLabels: t.taskLabels,
+              subtasks: t.subtasks,
+            }
+          : t,
+      ),
+    );
+  }, [projects]);
+
+  const handleTaskCreated = useCallback((task: Task) => {
+    const taskWithRelations = {
+      ...task,
+      project: projects.find((p) => p.id === task.projectId) ?? null,
+      taskLabels: [],
+      subtasks: [],
+    };
+    setTasks((prev) => [...prev, taskWithRelations]);
+  }, [projects]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveTask(event.active.data.current?.task ?? null);
@@ -90,7 +122,7 @@ export function ProjectDndWrapper({ tasks: initialTasks, projects, labels }: Pro
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-2.5">
           {tasks.map((task) => (
-            <SortableTaskCard key={task.id} task={task} projects={projects} labels={labels} />
+            <SortableTaskCard key={task.id} task={task} projects={projects} labels={labels} onDelete={handleDelete} onTaskUpdated={handleTaskUpdated} />
           ))}
         </div>
       </SortableContext>
@@ -102,6 +134,10 @@ export function ProjectDndWrapper({ tasks: initialTasks, projects, labels }: Pro
           </div>
         )}
       </DragOverlay>
+
+      <div className="mt-4">
+        <TaskForm defaultProjectId={projectId} projects={projects} onTaskCreated={handleTaskCreated} />
+      </div>
     </DndContext>
   );
 }

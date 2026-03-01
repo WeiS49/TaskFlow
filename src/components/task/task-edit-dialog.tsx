@@ -38,7 +38,7 @@ import { SubtaskList } from "@/components/task/subtask-list";
 import { cn } from "@/lib/utils";
 import { PRIORITIES, TIME_BLOCKS, type Priority, type TimeBlock } from "@/lib/constants";
 import type { TaskWithRelations } from "@/db/queries";
-import type { Project, Label } from "@/db/schema";
+import type { Project, Label, Task } from "@/db/schema";
 
 interface TaskEditDialogProps {
   task: TaskWithRelations;
@@ -46,6 +46,8 @@ interface TaskEditDialogProps {
   labels: Label[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDelete?: (taskId: string) => void;
+  onTaskUpdated?: (task: Task) => void;
 }
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -69,6 +71,8 @@ export function TaskEditDialog({
   labels,
   open,
   onOpenChange,
+  onDelete,
+  onTaskUpdated,
 }: TaskEditDialogProps) {
   const [isPending, startTransition] = useTransition();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -123,6 +127,7 @@ export function TaskEditDialog({
 
       if (taskResult.success && labelsResult.success) {
         toast.success("Task updated");
+        if (taskResult.data) onTaskUpdated?.(taskResult.data);
         onOpenChange(false);
       } else {
         const error = !taskResult.success
@@ -140,6 +145,7 @@ export function TaskEditDialog({
       const result = await deleteTask(task.id);
       if (result.success) {
         toast.success("Task deleted");
+        onDelete?.(task.id);
         onOpenChange(false);
       } else {
         toast.error(result.error);
