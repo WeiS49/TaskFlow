@@ -49,6 +49,14 @@ export function ProjectDndWrapper({ tasks: initialTasks, projects, labels, proje
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  const handleComplete = useCallback((taskId: string) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId ? { ...t, status: "done" as const, completedAt: new Date() } : t,
+      ),
+    );
+  }, []);
+
   const handleDelete = useCallback((taskId: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
   }, []);
@@ -122,7 +130,7 @@ export function ProjectDndWrapper({ tasks: initialTasks, projects, labels, proje
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-2.5">
           {tasks.map((task) => (
-            <SortableTaskCard key={task.id} task={task} projects={projects} labels={labels} onDelete={handleDelete} onTaskUpdated={handleTaskUpdated} />
+            <SortableTaskCard key={task.id} task={task} projects={projects} labels={labels} onComplete={handleComplete} onDelete={handleDelete} onTaskUpdated={handleTaskUpdated} />
           ))}
         </div>
       </SortableContext>
