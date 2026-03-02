@@ -24,6 +24,7 @@ import type { Project, Label, Task } from "@/db/schema";
 
 interface TodayDndWrapperProps {
   grouped: Record<ScheduledTimeBlock, TaskWithRelations[]>;
+  unscheduled: TaskWithRelations[];
   projects: Project[];
   labels: Label[];
 }
@@ -47,8 +48,9 @@ function calcPosition(tasks: TaskWithRelations[], targetIndex: number): number {
   return (tasks[targetIndex - 1].position + tasks[targetIndex].position) / 2;
 }
 
-export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: TodayDndWrapperProps) {
+export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialUnscheduled, projects, labels }: TodayDndWrapperProps) {
   const [grouped, setGrouped] = useState(initialGrouped);
+  const [unscheduledTasks, setUnscheduledTasks] = useState(initialUnscheduled);
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
 
   const handleComplete = useCallback((taskId: string) => {
@@ -59,6 +61,7 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
       }
       return updated;
     });
+    setUnscheduledTasks((prev) => prev.filter((t) => t.id !== taskId));
   }, []);
 
   const handleDelete = useCallback((taskId: string) => {
@@ -69,55 +72,66 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
       }
       return updated;
     });
+    setUnscheduledTasks((prev) => prev.filter((t) => t.id !== taskId));
   }, []);
 
   const handleTaskUpdated = useCallback((task: Task) => {
-    const newBlock = (task.timeBlock as ScheduledTimeBlock) ?? "morning";
-    const validBlock = SCHEDULED_TIME_BLOCKS.includes(newBlock) ? newBlock : "morning";
+    const newBlock = task.timeBlock as ScheduledTimeBlock;
+    const isScheduled = SCHEDULED_TIME_BLOCKS.includes(newBlock);
+
+    // Find existing task from either grouped or unscheduled to preserve relations
+    const findExisting = (): TaskWithRelations | null => {
+      for (const block of SCHEDULED_TIME_BLOCKS) {
+        const found = grouped[block].find((t) => t.id === task.id);
+        if (found) return found;
+      }
+      return unscheduledTasks.find((t) => t.id === task.id) ?? null;
+    };
+    const existing = findExisting();
+    if (!existing) return;
+
+    const updatedTask: TaskWithRelations = {
+      ...existing,
+      ...task,
+      project: projects.find((p) => p.id === task.projectId) ?? null,
+      taskLabels: existing.taskLabels,
+      subtasks: existing.subtasks,
+    };
+
+    // Remove from all lists
     setGrouped((prev) => {
       const updated = { ...prev };
-      // Remove from old block
-      let found = false;
       for (const block of SCHEDULED_TIME_BLOCKS) {
-        const idx = updated[block].findIndex((t) => t.id === task.id);
-        if (idx !== -1) {
-          const existing = updated[block][idx];
-          const updatedTask = {
-            ...existing,
-            ...task,
-            project: projects.find((p) => p.id === task.projectId) ?? null,
-            taskLabels: existing.taskLabels,
-            subtasks: existing.subtasks,
-          };
-          if (block === validBlock) {
-            // Same block — replace in place
-            updated[block] = [...updated[block]];
-            updated[block][idx] = updatedTask;
-          } else {
-            // Different block — move
-            updated[block] = updated[block].filter((t) => t.id !== task.id);
-            updated[validBlock] = [...updated[validBlock], updatedTask];
-          }
-          found = true;
-          break;
-        }
+        updated[block] = prev[block].filter((t) => t.id !== task.id);
       }
-      return found ? updated : prev;
+      if (isScheduled) {
+        updated[newBlock] = [...updated[newBlock], updatedTask];
+      }
+      return updated;
     });
-  }, [projects]);
+    setUnscheduledTasks((prev) => {
+      const without = prev.filter((t) => t.id !== task.id);
+      return isScheduled ? without : [...without, updatedTask];
+    });
+  }, [projects, grouped, unscheduledTasks]);
 
   const handleTaskCreated = useCallback((task: Task) => {
-    const block = (task.timeBlock as ScheduledTimeBlock) ?? "morning";
-    const taskWithRelations = {
+    const block = task.timeBlock as ScheduledTimeBlock;
+    const isScheduled = SCHEDULED_TIME_BLOCKS.includes(block);
+    const taskWithRelations: TaskWithRelations = {
       ...task,
       project: projects.find((p) => p.id === task.projectId) ?? null,
       taskLabels: [],
       subtasks: [],
     };
-    setGrouped((prev) => ({
-      ...prev,
-      [block]: [...prev[block], taskWithRelations],
-    }));
+    if (isScheduled) {
+      setGrouped((prev) => ({
+        ...prev,
+        [block]: [...prev[block], taskWithRelations],
+      }));
+    } else {
+      setUnscheduledTasks((prev) => [...prev, taskWithRelations]);
+    }
   }, [projects]);
 
   const sensors = useSensors(
@@ -239,6 +253,22 @@ export function TodayDndWrapper({ grouped: initialGrouped, projects, labels }: T
           onTaskUpdated={handleTaskUpdated}
         />
       ))}
+
+      {unscheduledTasks.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="font-[family-name:var(--font-heading)] text-sm font-medium text-muted-foreground whitespace-nowrap">
+              Unscheduled
+            </span>
+            <hr className="flex-1 border-border" />
+          </div>
+          <div className="space-y-2.5 pl-7">
+            {unscheduledTasks.map((task) => (
+              <TaskCard key={task.id} task={task} projects={projects} labels={labels} onComplete={handleComplete} onDelete={handleDelete} onTaskUpdated={handleTaskUpdated} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
         {activeTask && (

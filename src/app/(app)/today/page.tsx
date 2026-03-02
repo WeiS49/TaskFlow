@@ -11,7 +11,7 @@ export default async function TodayPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const [{ tasks, grouped }, projects, labels, completedTasks, tomorrowTasks, review] = await Promise.all([
+  const [{ tasks, grouped, unscheduled }, projects, labels, completedTasks, tomorrowTasks, review] = await Promise.all([
     getTodayTasks(session.user.id),
     getProjects(session.user.id),
     getLabels(session.user.id),
@@ -24,7 +24,7 @@ export default async function TodayPage() {
     <div className="flex gap-8 px-10 py-8">
       <div className="flex-1 min-w-0 space-y-6">
         <DayHeader tasks={tasks} />
-        <TodayDndWrapper grouped={grouped} projects={projects} labels={labels} />
+        <TodayDndWrapper grouped={grouped} unscheduled={unscheduled} projects={projects} labels={labels} />
       </div>
       <ReviewPanel
         completedTasks={completedTasks}

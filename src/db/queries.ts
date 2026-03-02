@@ -26,15 +26,18 @@ export async function getTodayTasks(userId: string) {
     afternoon: [],
     evening: [],
   };
+  const unscheduled: typeof allTasks = [];
 
   for (const task of allTasks) {
     const block = task.timeBlock as ScheduledTimeBlock;
     if (SCHEDULED_TIME_BLOCKS.includes(block)) {
       grouped[block].push(task);
+    } else {
+      unscheduled.push(task);
     }
   }
 
-  return { tasks: allTasks, grouped };
+  return { tasks: allTasks, grouped, unscheduled };
 }
 
 export async function getAllTasks(userId: string) {
