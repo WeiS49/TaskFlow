@@ -8,6 +8,7 @@ import { registerReadTools } from "./tools/read.js";
 import { registerWriteTools } from "./tools/write.js";
 import { registerConvenienceTools } from "./tools/convenience.js";
 import { registerAiPoweredTools } from "./tools/ai-powered.js";
+import { registerChallengeTools } from "./tools/challenge.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -42,6 +43,7 @@ async function main() {
   registerWriteTools(server, db, userId);
   registerConvenienceTools(server, db, userId);
   registerAiPoweredTools(server, db, userId);
+  registerChallengeTools(server, db, userId);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
