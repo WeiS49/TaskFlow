@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, ArrowRight, Sparkles, Undo2 } from "lucide-react";
+import { CheckCircle2, ArrowRight, Sparkles, Undo2, Star, Clock, BarChart3 } from "lucide-react";
 import { DailyQuote } from "./daily-quote";
 import { EnergySelector } from "./energy-selector";
 import { MoodSelector } from "./mood-selector";
@@ -8,6 +8,7 @@ import { upsertDailyReview } from "@/actions/daily-review-actions";
 import { toggleTaskStatus } from "@/actions/task-actions";
 import { useCallback, useRef, useState, useTransition } from "react";
 import type { Task, Project, DailyReview } from "@/db/schema";
+import type { RecurringCompletion } from "@/db/queries";
 
 type CompletedTask = Task & { project: Project | null };
 
@@ -16,9 +17,11 @@ interface ReviewPanelProps {
   tomorrowTasks: CompletedTask[];
   review: DailyReview | null;
   date: string;
+  recurringCompletions?: RecurringCompletion[];
+  keyTaskId?: string | null;
 }
 
-export function ReviewPanel({ completedTasks, tomorrowTasks, review, date }: ReviewPanelProps) {
+export function ReviewPanel({ completedTasks, tomorrowTasks, review, date, recurringCompletions = [], keyTaskId }: ReviewPanelProps) {
   const [energyLevel, setEnergyLevel] = useState<number | undefined>(
     review?.energyLevel ?? undefined,
   );
@@ -67,6 +70,47 @@ export function ReviewPanel({ completedTasks, tomorrowTasks, review, date }: Rev
           Daily Review
         </h2>
       </div>
+
+      {/* Today's Stats */}
+      {(() => {
+        const totalCompleted = completedTasks.length + recurringCompletions.length;
+        const totalMinutes =
+          completedTasks.reduce((sum, t) => sum + (t.estimatedMinutes ?? 0), 0) +
+          recurringCompletions.reduce((sum, c) => sum + (c.estimatedMinutes ?? 0), 0);
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+        const keyTask = keyTaskId ? completedTasks.find((t) => t.id === keyTaskId) : null;
+        const keyTaskDone = !!keyTask;
+
+        return (
+          <section className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">Today&apos;s Stats</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                <span className="text-xs text-foreground">{totalCompleted} completed</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3 w-3 text-blue-500" />
+                <span className="text-xs text-foreground">
+                  {hours > 0 ? `${hours}h ` : ""}{mins}m
+                </span>
+              </div>
+            </div>
+            {keyTaskId && (
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <Star className={`h-3 w-3 ${keyTaskDone ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`} />
+                <span className="text-xs text-foreground truncate">
+                  {keyTaskDone ? "Key task done!" : "Key task pending"}
+                </span>
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {/* Completed today */}
       <section className="space-y-2.5">

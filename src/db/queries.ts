@@ -1,6 +1,6 @@
 import { and, eq, ne, isNull, ilike, or, desc, asc, gte, lt } from "drizzle-orm";
 import { db } from "@/db";
-import { tasks, projects, labels, dailyReviews } from "@/db/schema";
+import { tasks, projects, labels, dailyReviews, taskCompletions } from "@/db/schema";
 import type { ScheduledTimeBlock } from "@/lib/constants";
 import { SCHEDULED_TIME_BLOCKS } from "@/lib/constants";
 import { getLocalToday, getLocalTomorrow, getLocalDayRange } from "@/lib/date-utils";
@@ -208,6 +208,20 @@ export async function getTomorrowTasks(userId: string, timezone: string) {
     orderBy: [asc(tasks.position)],
   });
 }
+
+export async function getTodayRecurringCompletions(userId: string, timezone: string) {
+  const today = getLocalToday(timezone);
+  return db.query.taskCompletions.findMany({
+    where: and(
+      eq(taskCompletions.userId, userId),
+      eq(taskCompletions.date, today),
+    ),
+    with: { task: true },
+    orderBy: [desc(taskCompletions.completedAt)],
+  });
+}
+
+export type RecurringCompletion = Awaited<ReturnType<typeof getTodayRecurringCompletions>>[number];
 
 export async function getDailyReview(userId: string, date: string) {
   return db.query.dailyReviews.findFirst({

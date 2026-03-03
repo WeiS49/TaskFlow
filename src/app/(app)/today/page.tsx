@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getTodayTasks, getProjects, getLabels, getCompletedToday, getTomorrowTasks, getDailyReview } from "@/db/queries";
+import { getTodayTasks, getProjects, getLabels, getCompletedToday, getTomorrowTasks, getDailyReview, getTodayRecurringCompletions } from "@/db/queries";
 import { getLocalToday } from "@/lib/date-utils";
 import { DayHeader } from "@/components/daily-plan/day-header";
 import { TodayDndWrapper } from "@/components/daily-plan/today-dnd-wrapper";
@@ -13,13 +13,14 @@ export default async function TodayPage() {
   const tz = session.user.timezone;
   const today = getLocalToday(tz);
 
-  const [{ tasks, grouped, unscheduled }, projects, labels, completedTasks, tomorrowTasks, review] = await Promise.all([
+  const [{ tasks, grouped, unscheduled }, projects, labels, completedTasks, tomorrowTasks, review, recurringCompletions] = await Promise.all([
     getTodayTasks(session.user.id, tz),
     getProjects(session.user.id),
     getLabels(session.user.id),
     getCompletedToday(session.user.id, tz),
     getTomorrowTasks(session.user.id, tz),
     getDailyReview(session.user.id, today),
+    getTodayRecurringCompletions(session.user.id, tz),
   ]);
 
   return (
@@ -33,6 +34,8 @@ export default async function TodayPage() {
         tomorrowTasks={tomorrowTasks}
         review={review ?? null}
         date={today}
+        recurringCompletions={recurringCompletions}
+        keyTaskId={review?.keyTaskId ?? null}
       />
     </div>
   );
