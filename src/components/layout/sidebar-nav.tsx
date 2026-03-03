@@ -23,6 +23,7 @@ interface SidebarNavProps {
 const navItems = [
   { href: "/today", label: "Today", emoji: "✨" },
   { href: "/tasks", label: "All Tasks", emoji: "📋" },
+  { href: "/statistics", label: "Statistics", emoji: "📊" },
 ];
 
 export function SidebarNav({

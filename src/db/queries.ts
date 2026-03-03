@@ -1,4 +1,4 @@
-import { and, eq, ne, isNull, ilike, or, desc, asc, gte, lt } from "drizzle-orm";
+import { and, eq, ne, isNull, ilike, or, desc, asc, gte, lt, sql, count, sum } from "drizzle-orm";
 import { db } from "@/db";
 import { tasks, projects, labels, dailyReviews, taskCompletions } from "@/db/schema";
 import type { ScheduledTimeBlock } from "@/lib/constants";
@@ -231,4 +231,123 @@ export async function getDailyReview(userId: string, date: string) {
     ),
     with: { keyTask: true },
   });
+}
+
+export interface DayStats {
+  date: string;
+  completedCount: number;
+  totalMinutes: number;
+  keyTaskCompleted: boolean;
+}
+
+export async function getDailyStatistics(
+  userId: string,
+  timezone: string,
+  days: number,
+): Promise<DayStats[]> {
+  const today = getLocalToday(timezone);
+  const startDate = new Date(today + "T00:00:00");
+  startDate.setDate(startDate.getDate() - days + 1);
+  const startStr = startDate.toISOString().slice(0, 10);
+
+  // Regular completions by date (using completedAt timezone conversion)
+  const regularResults = await db
+    .select({
+      date: sql<string>`(${tasks.completedAt} AT TIME ZONE 'UTC' AT TIME ZONE ${timezone})::date::text`,
+      completedCount: count(),
+      totalMinutes: sum(tasks.estimatedMinutes),
+    })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.userId, userId),
+        eq(tasks.status, "done"),
+        isNull(tasks.deletedAt),
+        gte(sql`(${tasks.completedAt} AT TIME ZONE 'UTC' AT TIME ZONE ${timezone})::date::text`, startStr),
+        eq(tasks.isRecurring, false),
+      ),
+    )
+    .groupBy(sql`(${tasks.completedAt} AT TIME ZONE 'UTC' AT TIME ZONE ${timezone})::date::text`);
+
+  // Recurring completions by date
+  const recurringResults = await db
+    .select({
+      date: taskCompletions.date,
+      completedCount: count(),
+      totalMinutes: sum(taskCompletions.estimatedMinutes),
+    })
+    .from(taskCompletions)
+    .where(
+      and(
+        eq(taskCompletions.userId, userId),
+        gte(taskCompletions.date, startStr),
+      ),
+    )
+    .groupBy(taskCompletions.date);
+
+  // Key task completion by date
+  const reviewResults = await db
+    .select({
+      date: dailyReviews.date,
+      keyTaskId: dailyReviews.keyTaskId,
+    })
+    .from(dailyReviews)
+    .where(
+      and(
+        eq(dailyReviews.userId, userId),
+        gte(dailyReviews.date, startStr),
+      ),
+    );
+
+  // Check which key tasks are completed
+  const keyTaskIds = reviewResults
+    .map((r) => r.keyTaskId)
+    .filter((id): id is string => id !== null);
+
+  const completedKeyTasks = keyTaskIds.length > 0
+    ? await db.query.tasks.findMany({
+        where: and(
+          eq(tasks.status, "done"),
+          sql`${tasks.id} = ANY(${sql.raw(`ARRAY[${keyTaskIds.map((id) => `'${id}'`).join(",")}]::uuid[]`)})`,
+        ),
+        columns: { id: true },
+      })
+    : [];
+  const completedKeyTaskSet = new Set(completedKeyTasks.map((t) => t.id));
+
+  // Merge results into a date map
+  const dateMap = new Map<string, DayStats>();
+
+  // Initialize all dates
+  for (let i = 0; i < days; i++) {
+    const d = new Date(today + "T00:00:00");
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    dateMap.set(dateStr, { date: dateStr, completedCount: 0, totalMinutes: 0, keyTaskCompleted: false });
+  }
+
+  for (const r of regularResults) {
+    const stat = dateMap.get(r.date);
+    if (stat) {
+      stat.completedCount += Number(r.completedCount);
+      stat.totalMinutes += Number(r.totalMinutes ?? 0);
+    }
+  }
+
+  for (const r of recurringResults) {
+    const stat = dateMap.get(r.date);
+    if (stat) {
+      stat.completedCount += Number(r.completedCount);
+      stat.totalMinutes += Number(r.totalMinutes ?? 0);
+    }
+  }
+
+  for (const r of reviewResults) {
+    const stat = dateMap.get(r.date);
+    if (stat && r.keyTaskId) {
+      stat.keyTaskCompleted = completedKeyTaskSet.has(r.keyTaskId);
+    }
+  }
+
+  return Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
