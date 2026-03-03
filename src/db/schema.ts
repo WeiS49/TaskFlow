@@ -6,6 +6,7 @@ import {
   text,
   timestamp,
   real,
+  boolean,
   integer,
   date,
   primaryKey,
@@ -13,7 +14,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, type InferSelectModel, type InferInsertModel } from "drizzle-orm";
-import { TASK_STATUSES, PRIORITIES, TIME_BLOCKS } from "@/lib/constants";
+import { TASK_STATUSES, PRIORITIES, TIME_BLOCKS, RECURRENCE_TYPES } from "@/lib/constants";
 
 // ---------------------------------------------------------------------------
 // Enums (single source of truth from constants.ts)
@@ -22,6 +23,7 @@ import { TASK_STATUSES, PRIORITIES, TIME_BLOCKS } from "@/lib/constants";
 export const taskStatusEnum = pgEnum("task_status", [...TASK_STATUSES]);
 export const priorityEnum = pgEnum("priority", [...PRIORITIES]);
 export const timeBlockEnum = pgEnum("time_block", [...TIME_BLOCKS]);
+export const recurrenceTypeEnum = pgEnum("recurrence_type", [...RECURRENCE_TYPES]);
 
 // ---------------------------------------------------------------------------
 // Tables
@@ -74,6 +76,8 @@ export const tasks = pgTable("tasks", {
   startDate: date({ mode: "string" }),
   dueDate: date({ mode: "string" }),
   estimatedMinutes: integer(),
+  isRecurring: boolean("is_recurring").notNull().default(false),
+  recurrenceType: recurrenceTypeEnum(),
   completedAt: timestamp({ withTimezone: true }),
   deletedAt: timestamp({ withTimezone: true }),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -117,6 +121,7 @@ export const dailyReviews = pgTable("daily_reviews", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   date: date({ mode: "string" }).notNull(),
+  keyTaskId: uuid().references(() => tasks.id, { onDelete: "set null" }),
   energyLevel: integer(),
   mood: varchar({ length: 10 }),
   summary: text(),
@@ -126,6 +131,19 @@ export const dailyReviews = pgTable("daily_reviews", {
     .defaultNow()
     .$onUpdate(() => new Date()),
 }, (t) => [unique().on(t.userId, t.date)]);
+
+export const taskCompletions = pgTable("task_completions", {
+  id: uuid().defaultRandom().primaryKey(),
+  taskId: uuid()
+    .notNull()
+    .references(() => tasks.id, { onDelete: "cascade" }),
+  userId: uuid()
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  completedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  date: date({ mode: "string" }).notNull(),
+  estimatedMinutes: integer(),
+});
 
 // ---------------------------------------------------------------------------
 // Relations
@@ -156,6 +174,7 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
   }),
   subtasks: many(tasks, { relationName: "subtasks" }),
   taskLabels: many(taskLabels),
+  completions: many(taskCompletions),
 }));
 
 export const labelsRelations = relations(labels, ({ one, many }) => ({
@@ -173,6 +192,12 @@ export const taskLabelsRelations = relations(taskLabels, ({ one }) => ({
 
 export const dailyReviewsRelations = relations(dailyReviews, ({ one }) => ({
   user: one(users, { fields: [dailyReviews.userId], references: [users.id] }),
+  keyTask: one(tasks, { fields: [dailyReviews.keyTaskId], references: [tasks.id] }),
+}));
+
+export const taskCompletionsRelations = relations(taskCompletions, ({ one }) => ({
+  task: one(tasks, { fields: [taskCompletions.taskId], references: [tasks.id] }),
+  user: one(users, { fields: [taskCompletions.userId], references: [users.id] }),
 }));
 
 // ---------------------------------------------------------------------------
@@ -189,3 +214,5 @@ export type NewTask = InferInsertModel<typeof tasks>;
 export type NewLabel = InferInsertModel<typeof labels>;
 export type DailyReview = InferSelectModel<typeof dailyReviews>;
 export type NewDailyReview = InferInsertModel<typeof dailyReviews>;
+export type TaskCompletion = InferSelectModel<typeof taskCompletions>;
+export type NewTaskCompletion = InferInsertModel<typeof taskCompletions>;

@@ -11,3 +11,6 @@ export type Priority = (typeof PRIORITIES)[number];
 
 export const TASK_STATUSES = ["todo", "in_progress", "done", "cancelled"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+export const RECURRENCE_TYPES = ["daily", "weekly", "anytime"] as const;
+export type RecurrenceType = (typeof RECURRENCE_TYPES)[number];

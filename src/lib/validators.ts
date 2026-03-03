@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TASK_STATUSES, PRIORITIES, TIME_BLOCKS } from "@/lib/constants";
+import { TASK_STATUSES, PRIORITIES, TIME_BLOCKS, RECURRENCE_TYPES } from "@/lib/constants";
 
 // Auth
 export const loginSchema = z.object({
@@ -19,6 +19,8 @@ export const taskCreateSchema = z.object({
   startDate: z.string().date().optional(),
   dueDate: z.string().date().optional(),
   estimatedMinutes: z.number().int().positive().optional(),
+  isRecurring: z.boolean().optional(),
+  recurrenceType: z.enum(RECURRENCE_TYPES).optional(),
 });
 
 export const taskUpdateSchema = taskCreateSchema.partial();
