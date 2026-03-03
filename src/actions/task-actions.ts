@@ -3,9 +3,11 @@
 import { eq, and, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { tasks, taskLabels } from "@/db/schema";
+import { tasks, taskLabels, taskCompletions } from "@/db/schema";
 import { taskCreateSchema, taskUpdateSchema } from "@/lib/validators";
 import { requireAuth, type ActionResult } from "@/lib/auth-utils";
+import { auth } from "@/lib/auth";
+import { getLocalToday } from "@/lib/date-utils";
 import type { Task } from "@/db/schema";
 import type { TimeBlock } from "@/lib/constants";
 
@@ -20,10 +22,14 @@ export async function createTask(
     const estimatedMinutes = raw.estimatedMinutes
       ? Number(raw.estimatedMinutes)
       : undefined;
+    const isRecurring = raw.isRecurring === "true" ? true : undefined;
+    const recurrenceType = raw.recurrenceType as string | undefined;
 
     const parsed = taskCreateSchema.safeParse({
       ...raw,
       estimatedMinutes,
+      isRecurring,
+      recurrenceType: isRecurring ? recurrenceType : undefined,
     });
 
     if (!parsed.success) {
@@ -58,10 +64,14 @@ export async function updateTask(
     const estimatedMinutes = raw.estimatedMinutes
       ? Number(raw.estimatedMinutes)
       : undefined;
+    const isRecurring = raw.isRecurring === "true" ? true : raw.isRecurring === "false" ? false : undefined;
+    const recurrenceType = raw.recurrenceType as string | undefined;
 
     const parsed = taskUpdateSchema.safeParse({
       ...raw,
       estimatedMinutes,
+      isRecurring,
+      recurrenceType: isRecurring ? recurrenceType : undefined,
     });
 
     if (!parsed.success) {
@@ -135,6 +145,24 @@ export async function toggleTaskStatus(
 
     if (!existing) {
       return { success: false, error: "Task not found" };
+    }
+
+    // Recurring task: record completion + keep status as todo
+    if (existing.isRecurring && existing.status !== "done") {
+      const session = await auth();
+      const tz = session?.user?.timezone ?? "UTC";
+      const today = getLocalToday(tz);
+
+      await db.insert(taskCompletions).values({
+        taskId: id,
+        userId,
+        date: today,
+        estimatedMinutes: existing.estimatedMinutes,
+      });
+
+      revalidatePath("/today");
+      revalidatePath("/tasks");
+      return { success: true, data: existing };
     }
 
     const isDone = existing.status === "done";

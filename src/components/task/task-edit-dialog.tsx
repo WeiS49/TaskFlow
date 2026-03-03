@@ -36,7 +36,7 @@ import {
 import { LabelPicker } from "@/components/label/label-picker";
 import { SubtaskList } from "@/components/task/subtask-list";
 import { cn } from "@/lib/utils";
-import { PRIORITIES, TIME_BLOCKS, type Priority, type TimeBlock } from "@/lib/constants";
+import { PRIORITIES, TIME_BLOCKS, RECURRENCE_TYPES, type Priority, type TimeBlock, type RecurrenceType } from "@/lib/constants";
 import type { TaskWithRelations } from "@/db/queries";
 import type { Project, Label, Task } from "@/db/schema";
 
@@ -94,6 +94,10 @@ export function TaskEditDialog({
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>(
     task.taskLabels.map((tl) => tl.label.id),
   );
+  const [isRecurring, setIsRecurring] = useState(task.isRecurring ?? false);
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(
+    (task.recurrenceType as RecurrenceType) ?? "anytime",
+  );
 
   const hasAdvancedData =
     (task.timeBlock as TimeBlock) !== "unscheduled" ||
@@ -102,7 +106,8 @@ export function TaskEditDialog({
     !!task.estimatedMinutes ||
     (task.projectId !== null && task.projectId !== undefined) ||
     task.taskLabels.length > 0 ||
-    (task.subtasks ?? []).length > 0;
+    (task.subtasks ?? []).length > 0 ||
+    task.isRecurring;
 
   const [advancedOpen, setAdvancedOpen] = useState(hasAdvancedData);
 
@@ -119,6 +124,8 @@ export function TaskEditDialog({
       if (estimatedMinutes)
         formData.set("estimatedMinutes", estimatedMinutes);
       if (projectId !== "none") formData.set("projectId", projectId);
+      formData.set("isRecurring", isRecurring.toString());
+      if (isRecurring) formData.set("recurrenceType", recurrenceType);
 
       const [taskResult, labelsResult] = await Promise.all([
         updateTask(task.id, formData),
@@ -293,6 +300,33 @@ export function TaskEditDialog({
                     onChange={(e) => setEstimatedMinutes(e.target.value)}
                     placeholder="30"
                   />
+                </div>
+
+                {/* Recurring */}
+                <div className="space-y-1.5 col-span-2">
+                  <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isRecurring}
+                      onChange={(e) => setIsRecurring(e.target.checked)}
+                      className="accent-primary"
+                    />
+                    Recurring task
+                  </label>
+                  {isRecurring && (
+                    <Select value={recurrenceType} onValueChange={(v) => setRecurrenceType(v as RecurrenceType)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RECURRENCE_TYPES.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {r.charAt(0).toUpperCase() + r.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 {/* Project */}

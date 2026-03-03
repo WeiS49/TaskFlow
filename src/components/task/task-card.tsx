@@ -6,7 +6,7 @@ import { TaskCheckbox } from "./task-checkbox";
 import { TaskEditDialog } from "./task-edit-dialog";
 import { ProjectBadge } from "@/components/project/project-badge";
 import { LabelBadge } from "@/components/label/label-badge";
-import { Star } from "lucide-react";
+import { Star, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/db/queries";
 import type { Project, Label, Task } from "@/db/schema";
@@ -74,6 +74,9 @@ export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onD
               >
                 <Star className={cn("h-3.5 w-3.5", isKeyTask ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40 hover:text-muted-foreground")} />
               </button>
+            )}
+            {task.isRecurring && (
+              <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
             )}
           </div>
 
