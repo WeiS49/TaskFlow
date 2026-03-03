@@ -26,7 +26,7 @@ export default async function TodayPage() {
     <div className="flex gap-8 px-10 py-8">
       <div className="flex-1 min-w-0 space-y-6">
         <DayHeader tasks={tasks} />
-        <TodayDndWrapper grouped={grouped} unscheduled={unscheduled} completedToday={completedTasks} projects={projects} labels={labels} today={today} />
+        <TodayDndWrapper grouped={grouped} unscheduled={unscheduled} completedToday={completedTasks} projects={projects} labels={labels} today={today} keyTaskId={review?.keyTaskId ?? null} />
       </div>
       <ReviewPanel
         completedTasks={completedTasks}

@@ -16,9 +16,11 @@ interface SortableTaskCardProps {
   onComplete?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onTaskUpdated?: (task: Task) => void;
+  isKeyTask?: boolean;
+  onSetKeyTask?: () => void;
 }
 
-export function SortableTaskCard({ task, projects, labels, onComplete, onDelete, onTaskUpdated }: SortableTaskCardProps) {
+export function SortableTaskCard({ task, projects, labels, onComplete, onDelete, onTaskUpdated, isKeyTask, onSetKeyTask }: SortableTaskCardProps) {
   const [isCompleting, setIsCompleting] = useState(false);
   const {
     attributes,
@@ -59,7 +61,7 @@ export function SortableTaskCard({ task, projects, labels, onComplete, onDelete,
       >
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </div>
-      <TaskCard task={task} projects={projects} labels={labels} onComplete={onComplete ? handleComplete : undefined} onDelete={onDelete} onTaskUpdated={onTaskUpdated} />
+      <TaskCard task={task} projects={projects} labels={labels} onComplete={onComplete ? handleComplete : undefined} onDelete={onDelete} onTaskUpdated={onTaskUpdated} isKeyTask={isKeyTask} onSetKeyTask={onSetKeyTask} />
     </div>
   );
 }

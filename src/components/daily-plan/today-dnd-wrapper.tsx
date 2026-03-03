@@ -20,6 +20,7 @@ import { SortableTimeBlock } from "./sortable-time-block";
 import { TaskCard } from "@/components/task/task-card";
 import { cn } from "@/lib/utils";
 import { reorderTask } from "@/actions/task-actions";
+import { setKeyTask } from "@/actions/daily-review-actions";
 import { SCHEDULED_TIME_BLOCKS, type ScheduledTimeBlock } from "@/lib/constants";
 import type { TaskWithRelations } from "@/db/queries";
 import type { Project, Label, Task } from "@/db/schema";
@@ -31,6 +32,7 @@ interface TodayDndWrapperProps {
   projects: Project[];
   labels: Label[];
   today: string;
+  keyTaskId: string | null;
 }
 
 function findContainer(
@@ -52,12 +54,19 @@ function calcPosition(tasks: TaskWithRelations[], targetIndex: number): number {
   return (tasks[targetIndex - 1].position + tasks[targetIndex].position) / 2;
 }
 
-export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialUnscheduled, completedToday, projects, labels, today }: TodayDndWrapperProps) {
+export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialUnscheduled, completedToday, projects, labels, today, keyTaskId: initialKeyTaskId }: TodayDndWrapperProps) {
   const [grouped, setGrouped] = useState(initialGrouped);
   const [unscheduledTasks, setUnscheduledTasks] = useState(initialUnscheduled);
   const [completedTasks, setCompletedTasks] = useState(completedToday);
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
+  const [currentKeyTaskId, setCurrentKeyTaskId] = useState(initialKeyTaskId);
+
+  const handleSetKeyTask = useCallback((taskId: string) => {
+    const newId = currentKeyTaskId === taskId ? null : taskId;
+    setCurrentKeyTaskId(newId);
+    setKeyTask(today, newId);
+  }, [currentKeyTaskId, today]);
 
   const handleComplete = useCallback((taskId: string) => {
     // Find task from current state snapshot (closure)
@@ -306,10 +315,12 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
           projects={projects}
           labels={labels}
           today={today}
+          keyTaskId={currentKeyTaskId}
           onComplete={handleComplete}
           onDelete={handleDelete}
           onTaskCreated={handleTaskCreated}
           onTaskUpdated={handleTaskUpdated}
+          onSetKeyTask={handleSetKeyTask}
         />
       ))}
 
@@ -323,7 +334,7 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
           </div>
           <div className="space-y-2.5 pl-7">
             {unscheduledTasks.map((task) => (
-              <TaskCard key={task.id} task={task} projects={projects} labels={labels} onComplete={handleComplete} onDelete={handleDelete} onTaskUpdated={handleTaskUpdated} />
+              <TaskCard key={task.id} task={task} projects={projects} labels={labels} onComplete={handleComplete} onDelete={handleDelete} onTaskUpdated={handleTaskUpdated} isKeyTask={currentKeyTaskId === task.id} onSetKeyTask={() => handleSetKeyTask(task.id)} />
             ))}
           </div>
         </section>

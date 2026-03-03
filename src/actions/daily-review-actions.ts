@@ -8,6 +8,47 @@ import { dailyReviewSchema } from "@/lib/validators";
 import { requireAuth, type ActionResult } from "@/lib/auth-utils";
 import type { DailyReview } from "@/db/schema";
 
+export async function setKeyTask(
+  date: string,
+  taskId: string | null,
+): Promise<ActionResult<DailyReview>> {
+  try {
+    const userId = await requireAuth();
+
+    const existing = await db.query.dailyReviews.findFirst({
+      where: and(
+        eq(dailyReviews.userId, userId),
+        eq(dailyReviews.date, date),
+      ),
+    });
+
+    let review: DailyReview;
+
+    if (existing) {
+      const [updated] = await db
+        .update(dailyReviews)
+        .set({ keyTaskId: taskId })
+        .where(eq(dailyReviews.id, existing.id))
+        .returning();
+      review = updated;
+    } else {
+      const [created] = await db
+        .insert(dailyReviews)
+        .values({ userId, date, keyTaskId: taskId })
+        .returning();
+      review = created;
+    }
+
+    revalidatePath("/today");
+    return { success: true, data: review };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to set key task",
+    };
+  }
+}
+
 export async function upsertDailyReview(
   date: string,
   data: { energyLevel?: number; mood?: string; summary?: string },

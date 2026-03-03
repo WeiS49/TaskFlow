@@ -21,13 +21,15 @@ interface SortableTimeBlockProps {
   projects: Project[];
   labels: Label[];
   today: string;
+  keyTaskId?: string | null;
   onComplete?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onTaskCreated?: (task: Task) => void;
   onTaskUpdated?: (task: Task) => void;
+  onSetKeyTask?: (taskId: string) => void;
 }
 
-export function SortableTimeBlock({ timeBlock, tasks, projects, labels, today, onComplete, onDelete, onTaskCreated, onTaskUpdated }: SortableTimeBlockProps) {
+export function SortableTimeBlock({ timeBlock, tasks, projects, labels, today, keyTaskId, onComplete, onDelete, onTaskCreated, onTaskUpdated, onSetKeyTask }: SortableTimeBlockProps) {
   const { setNodeRef, isOver } = useDroppable({ id: timeBlock });
 
   return (
@@ -48,7 +50,7 @@ export function SortableTimeBlock({ timeBlock, tasks, projects, labels, today, o
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <SortableTaskCard key={task.id} task={task} projects={projects} labels={labels} onComplete={onComplete} onDelete={onDelete} onTaskUpdated={onTaskUpdated} />
+            <SortableTaskCard key={task.id} task={task} projects={projects} labels={labels} onComplete={onComplete} onDelete={onDelete} onTaskUpdated={onTaskUpdated} isKeyTask={keyTaskId === task.id} onSetKeyTask={onSetKeyTask ? () => onSetKeyTask(task.id) : undefined} />
           ))}
         </SortableContext>
       </div>

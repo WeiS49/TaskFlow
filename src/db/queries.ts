@@ -215,5 +215,6 @@ export async function getDailyReview(userId: string, date: string) {
       eq(dailyReviews.userId, userId),
       eq(dailyReviews.date, date),
     ),
+    with: { keyTask: true },
   });
 }

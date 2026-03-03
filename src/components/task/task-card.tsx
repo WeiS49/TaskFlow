@@ -6,6 +6,7 @@ import { TaskCheckbox } from "./task-checkbox";
 import { TaskEditDialog } from "./task-edit-dialog";
 import { ProjectBadge } from "@/components/project/project-badge";
 import { LabelBadge } from "@/components/label/label-badge";
+import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/db/queries";
 import type { Project, Label, Task } from "@/db/schema";
@@ -18,9 +19,11 @@ interface TaskCardProps {
   onUncomplete?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onTaskUpdated?: (task: Task) => void;
+  isKeyTask?: boolean;
+  onSetKeyTask?: () => void;
 }
 
-export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onDelete, onTaskUpdated }: TaskCardProps) {
+export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onDelete, onTaskUpdated, isKeyTask, onSetKeyTask }: TaskCardProps) {
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const isDone = task.status === "done";
@@ -54,14 +57,25 @@ export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onD
         </div>
 
         <div className="flex-1 min-w-0">
-          <p
-            className={cn(
-              "text-sm font-medium leading-snug",
-              isDone && "line-through text-muted-foreground",
+          <div className="flex items-center gap-1.5">
+            <p
+              className={cn(
+                "text-sm font-medium leading-snug",
+                isDone && "line-through text-muted-foreground",
+              )}
+            >
+              {task.title}
+            </p>
+            {onSetKeyTask && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onSetKeyTask(); }}
+                className="shrink-0 p-0.5 rounded hover:bg-secondary transition-colors"
+                title={isKeyTask ? "Remove key task" : "Set as key task"}
+              >
+                <Star className={cn("h-3.5 w-3.5", isKeyTask ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40 hover:text-muted-foreground")} />
+              </button>
             )}
-          >
-            {task.title}
-          </p>
+          </div>
 
           {task.description && (
             <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
