@@ -19,6 +19,7 @@ export function formatTask(task: TaskWithRelations): string {
   if (task.startDate) lines.push(`  Start: ${task.startDate}`);
   if (task.dueDate) lines.push(`  Due: ${task.dueDate}`);
   if (task.estimatedMinutes) lines.push(`  Estimate: ${task.estimatedMinutes}min`);
+  if (task.isRecurring) lines.push(`  Recurring: ${task.recurrenceType ?? "anytime"}`);
   if (task.taskLabels?.length)
     lines.push(
       `  Labels: ${task.taskLabels.map((tl) => tl.label.name).join(", ")}`,

@@ -4,6 +4,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Db } from "../db.js";
 import {
   tasks,
+  dailyReviews,
   type TimeBlock,
   TASK_STATUSES,
   PRIORITIES,
@@ -51,6 +52,15 @@ export function registerReadTools(
         orderBy: [asc(tasks.position), asc(tasks.createdAt)],
       });
 
+      // Get today's key task
+      const review = await db.query.dailyReviews.findFirst({
+        where: and(
+          eq(dailyReviews.userId, userId),
+          eq(dailyReviews.date, today),
+        ),
+      });
+      const keyTaskId = review?.keyTaskId;
+
       const grouped: Record<TimeBlock, typeof allTasks> = {
         morning: [],
         afternoon: [],
@@ -69,7 +79,14 @@ export function registerReadTools(
         .filter((t) => t.status !== "done")
         .reduce((sum, t) => sum + (t.estimatedMinutes ?? 0), 0);
 
-      const header = `# Today (${today})\n**${total} tasks** | ${done} done | ${total - done} pending | ~${totalMinutes}min estimated\n`;
+      let header = `# Today (${today})\n**${total} tasks** | ${done} done | ${total - done} pending | ~${totalMinutes}min estimated\n`;
+      if (keyTaskId) {
+        const keyTask = allTasks.find((t) => t.id === keyTaskId);
+        if (keyTask) {
+          const keyStatus = keyTask.status === "done" ? "done" : "pending";
+          header += `**Key task**: ${keyTask.title} (${keyStatus})\n`;
+        }
+      }
 
       return {
         content: [
@@ -225,6 +242,9 @@ export function registerReadTools(
       if (task.dueDate) lines.push(`- **Due date**: ${task.dueDate}`);
       if (task.estimatedMinutes)
         lines.push(`- **Estimate**: ${task.estimatedMinutes}min`);
+      if (task.isRecurring) {
+        lines.push(`- **Recurring**: yes (${task.recurrenceType ?? "anytime"})`);
+      }
       if (task.completedAt)
         lines.push(
           `- **Completed**: ${task.completedAt.toISOString().split("T")[0]}`,

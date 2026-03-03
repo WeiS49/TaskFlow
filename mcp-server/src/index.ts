@@ -43,7 +43,7 @@ async function main() {
   console.error(`TaskFlow MCP Server started (userId: ${userId}, tz: ${timezone})`);
 
   registerReadTools(server, db, userId, timezone);
-  registerWriteTools(server, db, userId);
+  registerWriteTools(server, db, userId, timezone);
   registerConvenienceTools(server, db, userId, timezone);
   registerAiPoweredTools(server, db, userId);
   registerChallengeTools(server, db, userId, timezone);

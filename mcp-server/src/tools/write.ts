@@ -4,15 +4,19 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Db } from "../db.js";
 import {
   tasks,
+  taskCompletions,
   TASK_STATUSES,
   PRIORITIES,
   TIME_BLOCKS,
+  RECURRENCE_TYPES,
 } from "../schema.js";
+import { getToday } from "../utils.js";
 
 export function registerWriteTools(
   server: McpServer,
   db: Db,
   userId: string,
+  timezone: string,
 ): void {
   // -----------------------------------------------------------------------
   // create_task
@@ -69,6 +73,14 @@ export function registerWriteTools(
           .max(480)
           .optional()
           .describe("Estimated duration in minutes (1-480)"),
+        isRecurring: z
+          .boolean()
+          .optional()
+          .describe("Whether this is a recurring task (auto-resets on completion)"),
+        recurrenceType: z
+          .enum(RECURRENCE_TYPES)
+          .optional()
+          .describe("Recurrence type: daily, weekly, anytime (only when isRecurring=true)"),
       },
       annotations: {
         readOnlyHint: false,
@@ -91,6 +103,8 @@ export function registerWriteTools(
           startDate: params.startDate,
           dueDate: params.dueDate,
           estimatedMinutes: params.estimatedMinutes,
+          isRecurring: params.isRecurring ?? false,
+          recurrenceType: params.isRecurring ? params.recurrenceType : undefined,
         })
         .returning();
 
@@ -156,6 +170,14 @@ export function registerWriteTools(
           .max(480)
           .optional()
           .describe("New estimated duration in minutes"),
+        isRecurring: z
+          .boolean()
+          .optional()
+          .describe("Whether this is a recurring task"),
+        recurrenceType: z
+          .enum(RECURRENCE_TYPES)
+          .optional()
+          .describe("Recurrence type: daily, weekly, anytime"),
       },
       annotations: {
         readOnlyHint: false,
@@ -188,6 +210,10 @@ export function registerWriteTools(
       if (updates.dueDate !== undefined) setValues.dueDate = updates.dueDate;
       if (updates.estimatedMinutes !== undefined)
         setValues.estimatedMinutes = updates.estimatedMinutes;
+      if (updates.isRecurring !== undefined)
+        setValues.isRecurring = updates.isRecurring;
+      if (updates.recurrenceType !== undefined)
+        setValues.recurrenceType = updates.recurrenceType;
 
       if (Object.keys(setValues).length === 0) {
         return {
@@ -321,6 +347,27 @@ export function registerWriteTools(
       }
 
       const isDone = existing.status === "done";
+
+      // Recurring task: log completion and keep as todo
+      if (existing.isRecurring && !isDone) {
+        const today = getToday(timezone);
+        await db.insert(taskCompletions).values({
+          taskId,
+          userId,
+          date: today,
+          estimatedMinutes: existing.estimatedMinutes,
+        });
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Completed recurring task: **${existing.title}** (logged, task stays active)`,
+            },
+          ],
+        };
+      }
+
       const [task] = await db
         .update(tasks)
         .set({

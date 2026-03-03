@@ -52,11 +52,11 @@ npx tsc --noEmit && npm run build && npm run lint
 ```
 
 ## MCP Server (`mcp-server/`)
-Standalone stdio MCP server for Claude Code integration. 14 tools:
+Standalone stdio MCP server for Claude Code integration. 17 tools:
 
 **Read**: `list_today_tasks`, `list_all_tasks`, `get_task`, `search_tasks`, `get_overdue`
 **Write**: `create_task`, `update_task`, `delete_task`, `complete_task`
-**Quick**: `set_priority`, `set_timeblock`
+**Quick**: `set_priority`, `set_timeblock`, `set_key_task`, `get_daily_stats`
 **AI**: `split_task`, `arrange_today`, `batch_update`
 
 ```bash
