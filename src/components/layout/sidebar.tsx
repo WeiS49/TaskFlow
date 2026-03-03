@@ -1,14 +1,15 @@
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { projects, labels, tasks } from "@/db/schema";
+import { getLocalToday } from "@/lib/date-utils";
 import { SidebarNav } from "./sidebar-nav";
 
 interface SidebarProps {
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; timezone: string };
 }
 
 export async function Sidebar({ user }: SidebarProps) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalToday(user.timezone);
 
   const [userProjects, userLabels, todayTasks] = await Promise.all([
     db.query.projects.findMany({
@@ -36,6 +37,7 @@ export async function Sidebar({ user }: SidebarProps) {
       projects={userProjects}
       labels={userLabels}
       todayTaskCount={todayTasks.length}
+      todayDate={today}
     />
   );
 }

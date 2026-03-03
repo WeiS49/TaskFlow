@@ -18,8 +18,10 @@ import type { Task, Project } from "@/db/schema";
 
 interface TaskFormProps {
   defaultTimeBlock?: string;
+  defaultStartDate?: string;
   defaultProjectId?: string;
   projects?: Project[];
+  onTaskCreated?: (task: Task) => void;
 }
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -30,7 +32,7 @@ const PRIORITY_LABELS: Record<string, string> = {
   urgent: "Urgent",
 };
 
-export function TaskForm({ defaultTimeBlock, defaultProjectId, projects = [] }: TaskFormProps) {
+export function TaskForm({ defaultTimeBlock, defaultStartDate, defaultProjectId, projects = [], onTaskCreated }: TaskFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [priority, setPriority] = useState("none");
@@ -50,6 +52,7 @@ export function TaskForm({ defaultTimeBlock, defaultProjectId, projects = [] }: 
         setPriority("none");
         setProjectId(defaultProjectId ?? "none");
         setEstimatedMinutes("");
+        onTaskCreated?.(result.data);
       }
       return result;
     },
@@ -61,6 +64,9 @@ export function TaskForm({ defaultTimeBlock, defaultProjectId, projects = [] }: 
       <div className="flex items-center gap-2">
         {defaultTimeBlock && (
           <input type="hidden" name="timeBlock" value={defaultTimeBlock} />
+        )}
+        {defaultStartDate && (
+          <input type="hidden" name="startDate" value={defaultStartDate} />
         )}
         <div className="flex-1">
           <Input

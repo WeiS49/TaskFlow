@@ -12,6 +12,7 @@ export function registerChallengeTools(
   server: McpServer,
   db: Db,
   userId: string,
+  timezone: string,
 ): void {
   server.registerTool(
     "import_challenge",
@@ -94,14 +95,14 @@ export function registerChallengeTools(
         })
         .returning();
 
-      // 2. Compute startDates and build task rows
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // 2. Compute startDates and build task rows (timezone-aware)
+      const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: timezone });
+      const todayDate = new Date(todayStr + "T00:00:00");
 
       const taskRows = params.tasks.map((t, index) => {
-        const startDate = new Date(today);
+        const startDate = new Date(todayDate);
         startDate.setDate(startDate.getDate() + (t.day - 1));
-        const dateStr = startDate.toISOString().split("T")[0];
+        const dateStr = startDate.toLocaleDateString("en-CA");
 
         return {
           userId,
@@ -123,12 +124,12 @@ export function registerChallengeTools(
       const days = params.tasks.map((t) => t.day);
       const minDay = Math.min(...days);
       const maxDay = Math.max(...days);
-      const firstDate = new Date(today);
+      const firstDate = new Date(todayDate);
       firstDate.setDate(firstDate.getDate() + (minDay - 1));
-      const lastDate = new Date(today);
+      const lastDate = new Date(todayDate);
       lastDate.setDate(lastDate.getDate() + (maxDay - 1));
 
-      const fmt = (d: Date) => d.toISOString().split("T")[0];
+      const fmt = (d: Date) => d.toLocaleDateString("en-CA");
 
       return {
         content: [

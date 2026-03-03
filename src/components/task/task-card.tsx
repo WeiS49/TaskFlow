@@ -15,11 +15,12 @@ interface TaskCardProps {
   projects: Project[];
   labels: Label[];
   onComplete?: (taskId: string) => void;
+  onUncomplete?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onTaskUpdated?: (task: Task) => void;
 }
 
-export function TaskCard({ task, projects, labels, onComplete, onDelete, onTaskUpdated }: TaskCardProps) {
+export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onDelete, onTaskUpdated }: TaskCardProps) {
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const isDone = task.status === "done";
@@ -27,8 +28,10 @@ export function TaskCard({ task, projects, labels, onComplete, onDelete, onTaskU
   function handleToggle() {
     startTransition(async () => {
       await toggleTaskStatus(task.id);
-      if (!isDone && onComplete) {
-        onComplete(task.id);
+      if (isDone) {
+        onUncomplete?.(task.id);
+      } else {
+        onComplete?.(task.id);
       }
     });
   }

@@ -1,17 +1,19 @@
-import { and, eq, isNull, ilike, or, desc, asc, gte, lt } from "drizzle-orm";
+import { and, eq, ne, isNull, ilike, or, desc, asc, gte, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { tasks, projects, labels, dailyReviews } from "@/db/schema";
 import type { ScheduledTimeBlock } from "@/lib/constants";
 import { SCHEDULED_TIME_BLOCKS } from "@/lib/constants";
+import { getLocalToday, getLocalTomorrow, getLocalDayRange } from "@/lib/date-utils";
 
-export async function getTodayTasks(userId: string) {
-  const today = new Date().toISOString().split("T")[0];
+export async function getTodayTasks(userId: string, timezone: string) {
+  const today = getLocalToday(timezone);
 
   const allTasks = await db.query.tasks.findMany({
     where: and(
       eq(tasks.userId, userId),
       isNull(tasks.deletedAt),
       eq(tasks.startDate, today),
+      ne(tasks.status, "done"),
     ),
     with: {
       project: true,
@@ -171,10 +173,8 @@ export async function searchProjects(userId: string, query: string) {
   });
 }
 
-export async function getCompletedToday(userId: string) {
-  const today = new Date();
-  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+export async function getCompletedToday(userId: string, timezone: string) {
+  const { start: startOfDay, end: endOfDay } = getLocalDayRange(timezone);
 
   return db.query.tasks.findMany({
     where: and(
@@ -186,15 +186,15 @@ export async function getCompletedToday(userId: string) {
     ),
     with: {
       project: true,
+      taskLabels: { with: { label: true } },
+      subtasks: true,
     },
     orderBy: [desc(tasks.completedAt)],
   });
 }
 
-export async function getTomorrowTasks(userId: string) {
-  const today = new Date();
-  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split("T")[0];
+export async function getTomorrowTasks(userId: string, timezone: string) {
+  const tomorrowStr = getLocalTomorrow(timezone);
 
   return db.query.tasks.findMany({
     where: and(

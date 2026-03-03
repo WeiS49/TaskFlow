@@ -14,6 +14,7 @@ export function registerReadTools(
   server: McpServer,
   db: Db,
   userId: string,
+  timezone: string,
 ): void {
   // -----------------------------------------------------------------------
   // list_today_tasks
@@ -33,7 +34,7 @@ export function registerReadTools(
       },
     },
     async () => {
-      const today = getToday();
+      const today = getToday(timezone);
 
       const allTasks = await db.query.tasks.findMany({
         where: and(

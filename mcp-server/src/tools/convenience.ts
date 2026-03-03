@@ -9,6 +9,7 @@ export function registerConvenienceTools(
   server: McpServer,
   db: Db,
   userId: string,
+  timezone: string,
 ): void {
   // -----------------------------------------------------------------------
   // search_tasks
@@ -84,7 +85,7 @@ export function registerConvenienceTools(
       },
     },
     async () => {
-      const today = getToday();
+      const today = getToday(timezone);
 
       const overdue = await db.query.tasks.findMany({
         where: and(

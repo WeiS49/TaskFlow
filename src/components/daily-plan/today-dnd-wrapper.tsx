@@ -15,8 +15,10 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { ChevronRight } from "lucide-react";
 import { SortableTimeBlock } from "./sortable-time-block";
 import { TaskCard } from "@/components/task/task-card";
+import { cn } from "@/lib/utils";
 import { reorderTask } from "@/actions/task-actions";
 import { SCHEDULED_TIME_BLOCKS, type ScheduledTimeBlock } from "@/lib/constants";
 import type { TaskWithRelations } from "@/db/queries";
@@ -25,8 +27,10 @@ import type { Project, Label, Task } from "@/db/schema";
 interface TodayDndWrapperProps {
   grouped: Record<ScheduledTimeBlock, TaskWithRelations[]>;
   unscheduled: TaskWithRelations[];
+  completedToday: TaskWithRelations[];
   projects: Project[];
   labels: Label[];
+  today: string;
 }
 
 function findContainer(
@@ -48,12 +52,23 @@ function calcPosition(tasks: TaskWithRelations[], targetIndex: number): number {
   return (tasks[targetIndex - 1].position + tasks[targetIndex].position) / 2;
 }
 
-export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialUnscheduled, projects, labels }: TodayDndWrapperProps) {
+export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialUnscheduled, completedToday, projects, labels, today }: TodayDndWrapperProps) {
   const [grouped, setGrouped] = useState(initialGrouped);
   const [unscheduledTasks, setUnscheduledTasks] = useState(initialUnscheduled);
+  const [completedTasks, setCompletedTasks] = useState(completedToday);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
 
   const handleComplete = useCallback((taskId: string) => {
+    // Find task from current state snapshot (closure)
+    let found: TaskWithRelations | undefined;
+    for (const block of SCHEDULED_TIME_BLOCKS) {
+      found = grouped[block].find((t) => t.id === taskId);
+      if (found) break;
+    }
+    if (!found) found = unscheduledTasks.find((t) => t.id === taskId);
+
+    // Flat, pure setState calls — no nesting
     setGrouped((prev) => {
       const updated = { ...prev };
       for (const block of SCHEDULED_TIME_BLOCKS) {
@@ -62,7 +77,28 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
       return updated;
     });
     setUnscheduledTasks((prev) => prev.filter((t) => t.id !== taskId));
-  }, []);
+    if (found) {
+      const done = { ...found, status: "done" as const, completedAt: new Date() };
+      setCompletedTasks((prev) =>
+        prev.some((t) => t.id === taskId) ? prev : [done, ...prev],
+      );
+    }
+  }, [grouped, unscheduledTasks]);
+
+  const handleUncomplete = useCallback((taskId: string) => {
+    const task = completedTasks.find((t) => t.id === taskId);
+    if (!task) return;
+    const restored: TaskWithRelations = { ...task, status: "todo", completedAt: null };
+    const block = restored.timeBlock as ScheduledTimeBlock;
+
+    // Flat, pure setState calls — no nesting
+    setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
+    if (SCHEDULED_TIME_BLOCKS.includes(block)) {
+      setGrouped((prev) => ({ ...prev, [block]: [...prev[block], restored] }));
+    } else {
+      setUnscheduledTasks((prev) => [...prev, restored]);
+    }
+  }, [completedTasks]);
 
   const handleDelete = useCallback((taskId: string) => {
     setGrouped((prev) => {
@@ -79,7 +115,7 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
     const newBlock = task.timeBlock as ScheduledTimeBlock;
     const isScheduled = SCHEDULED_TIME_BLOCKS.includes(newBlock);
 
-    // Find existing task from either grouped or unscheduled to preserve relations
+    // Find existing task to preserve relations
     const findExisting = (): TaskWithRelations | null => {
       for (const block of SCHEDULED_TIME_BLOCKS) {
         const found = grouped[block].find((t) => t.id === task.id);
@@ -98,20 +134,42 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
       subtasks: existing.subtasks,
     };
 
-    // Remove from all lists
+    // Update grouped: same block → map in-place; different block → filter + append
     setGrouped((prev) => {
       const updated = { ...prev };
+      let movedFromGrouped = false;
       for (const block of SCHEDULED_TIME_BLOCKS) {
-        updated[block] = prev[block].filter((t) => t.id !== task.id);
+        const inThisBlock = prev[block].some((t) => t.id === task.id);
+        if (inThisBlock && isScheduled && block === newBlock) {
+          // Same block: preserve position
+          updated[block] = prev[block].map((t) => t.id === task.id ? updatedTask : t);
+          return updated;
+        }
+        if (inThisBlock) {
+          updated[block] = prev[block].filter((t) => t.id !== task.id);
+          movedFromGrouped = true;
+        }
       }
-      if (isScheduled) {
+      // Task moved from a grouped block (or from unscheduled) into a new scheduled block
+      if (isScheduled && (movedFromGrouped || !prev[newBlock].some((t) => t.id === task.id))) {
         updated[newBlock] = [...updated[newBlock], updatedTask];
       }
       return updated;
     });
+
+    // Update unscheduled: same → map in-place; different → filter or append
     setUnscheduledTasks((prev) => {
-      const without = prev.filter((t) => t.id !== task.id);
-      return isScheduled ? without : [...without, updatedTask];
+      const inUnscheduled = prev.some((t) => t.id === task.id);
+      if (inUnscheduled && !isScheduled) {
+        return prev.map((t) => t.id === task.id ? updatedTask : t);
+      }
+      if (inUnscheduled) {
+        return prev.filter((t) => t.id !== task.id);
+      }
+      if (!isScheduled) {
+        return [...prev, updatedTask];
+      }
+      return prev;
     });
   }, [projects, grouped, unscheduledTasks]);
 
@@ -247,6 +305,7 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
           tasks={grouped[block]}
           projects={projects}
           labels={labels}
+          today={today}
           onComplete={handleComplete}
           onDelete={handleDelete}
           onTaskCreated={handleTaskCreated}
@@ -268,6 +327,25 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
             ))}
           </div>
         </section>
+      )}
+
+      {completedTasks.length > 0 && (
+        <div className="mt-2">
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronRight className={cn("h-4 w-4 transition-transform", showCompleted && "rotate-90")} />
+            Completed ({completedTasks.length})
+          </button>
+          {showCompleted && (
+            <div className="mt-2 space-y-2.5 pl-7 opacity-60">
+              {completedTasks.map((task) => (
+                <TaskCard key={task.id} task={task} projects={projects} labels={labels} onUncomplete={handleUncomplete} />
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>

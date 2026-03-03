@@ -1,7 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getProjectWithTasks, getProjects, getLabels } from "@/db/queries";
-import { TaskForm } from "@/components/task/task-form";
 import { ProjectDndWrapper } from "@/components/project/project-dnd-wrapper";
 import { ProjectActions } from "./project-actions";
 
@@ -40,7 +39,7 @@ export default async function ProjectPage({
       </div>
 
       <div className="pl-7">
-        <ProjectDndWrapper tasks={tasks} projects={projects} labels={labels} />
+        <ProjectDndWrapper tasks={tasks} projects={projects} labels={labels} projectId={project.id} />
       </div>
 
       {tasks.length === 0 && (
@@ -48,10 +47,6 @@ export default async function ProjectPage({
           No tasks in this project yet.
         </p>
       )}
-
-      <div className="mt-4">
-        <TaskForm defaultProjectId={project.id} projects={projects} />
-      </div>
     </div>
   );
 }

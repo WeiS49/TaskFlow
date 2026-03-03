@@ -20,13 +20,14 @@ interface SortableTimeBlockProps {
   tasks: TaskWithRelations[];
   projects: Project[];
   labels: Label[];
+  today: string;
   onComplete?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onTaskCreated?: (task: Task) => void;
   onTaskUpdated?: (task: Task) => void;
 }
 
-export function SortableTimeBlock({ timeBlock, tasks, projects, labels, onComplete, onDelete, onTaskCreated, onTaskUpdated }: SortableTimeBlockProps) {
+export function SortableTimeBlock({ timeBlock, tasks, projects, labels, today, onComplete, onDelete, onTaskCreated, onTaskUpdated }: SortableTimeBlockProps) {
   const { setNodeRef, isOver } = useDroppable({ id: timeBlock });
 
   return (
@@ -53,7 +54,7 @@ export function SortableTimeBlock({ timeBlock, tasks, projects, labels, onComple
       </div>
 
       <div className="pl-7">
-        <TaskForm defaultTimeBlock={timeBlock} projects={projects} onTaskCreated={onTaskCreated} />
+        <TaskForm defaultTimeBlock={timeBlock} defaultStartDate={today} projects={projects} onTaskCreated={onTaskCreated} />
       </div>
     </section>
   );

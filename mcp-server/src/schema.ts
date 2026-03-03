@@ -53,6 +53,7 @@ export const users = pgTable("users", {
   email: varchar({ length: 255 }).notNull().unique(),
   name: varchar({ length: 255 }).notNull(),
   hashedPassword: text().notNull(),
+  timezone: varchar({ length: 50 }).notNull().default("UTC"),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp({ withTimezone: true })
     .notNull()

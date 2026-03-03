@@ -109,6 +109,7 @@ export async function deleteTask(id: string): Promise<ActionResult<Task>> {
 
     revalidatePath("/today");
     revalidatePath("/tasks");
+    if (task.projectId) revalidatePath(`/projects/${task.projectId}`);
     return { success: true, data: task };
   } catch (error) {
     return {

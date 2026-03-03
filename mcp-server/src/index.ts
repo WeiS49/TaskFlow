@@ -24,26 +24,29 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-async function getUserId(): Promise<string> {
+async function getUser(): Promise<{ id: string; timezone: string }> {
   if (process.env.TASKFLOW_USER_ID) {
-    return process.env.TASKFLOW_USER_ID;
+    const user = await db.query.users.findFirst({
+      where: (u, { eq }) => eq(u.id, process.env.TASKFLOW_USER_ID!),
+    });
+    return { id: process.env.TASKFLOW_USER_ID, timezone: user?.timezone ?? "UTC" };
   }
   const user = await db.query.users.findFirst();
   if (!user) {
     throw new Error("No user found in database. Run the seed script first.");
   }
-  return user.id;
+  return { id: user.id, timezone: user.timezone };
 }
 
 async function main() {
-  const userId = await getUserId();
-  console.error(`TaskFlow MCP Server started (userId: ${userId})`);
+  const { id: userId, timezone } = await getUser();
+  console.error(`TaskFlow MCP Server started (userId: ${userId}, tz: ${timezone})`);
 
-  registerReadTools(server, db, userId);
+  registerReadTools(server, db, userId, timezone);
   registerWriteTools(server, db, userId);
-  registerConvenienceTools(server, db, userId);
+  registerConvenienceTools(server, db, userId, timezone);
   registerAiPoweredTools(server, db, userId);
-  registerChallengeTools(server, db, userId);
+  registerChallengeTools(server, db, userId, timezone);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -54,5 +57,5 @@ main().catch((error) => {
   process.exit(1);
 });
 
-export { db, server, getUserId };
+export { db, server, getUser };
 export type { Db };

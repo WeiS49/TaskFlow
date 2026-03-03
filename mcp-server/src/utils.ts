@@ -71,6 +71,6 @@ export function formatGroupedTasks(
   return sections.length > 0 ? sections.join("\n") : "No tasks for today.";
 }
 
-export function getToday(): string {
-  return new Date().toISOString().split("T")[0];
+export function getToday(timezone: string): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: timezone });
 }

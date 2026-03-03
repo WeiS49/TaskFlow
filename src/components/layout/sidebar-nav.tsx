@@ -17,6 +17,7 @@ interface SidebarNavProps {
   projects: Project[];
   labels: Label[];
   todayTaskCount: number;
+  todayDate: string;
 }
 
 const navItems = [
@@ -29,6 +30,7 @@ export function SidebarNav({
   projects,
   labels,
   todayTaskCount,
+  todayDate,
 }: SidebarNavProps) {
   const pathname = usePathname();
   const [createOpen, setCreateOpen] = useState(false);
@@ -41,7 +43,7 @@ export function SidebarNav({
           TaskFlow
         </h2>
         <p className="mt-0.5 text-[13px] text-muted-foreground">
-          {format(new Date(), "yyyy年M月d日 · EEEE", { locale: zhCN })}
+          {format(new Date(todayDate + "T00:00:00"), "yyyy年M月d日 · EEEE", { locale: zhCN })}
         </p>
       </div>
 

@@ -11,6 +11,7 @@ declare module "next-auth" {
       id: string;
       email: string;
       name: string;
+      timezone: string;
     };
   }
 }
@@ -18,6 +19,7 @@ declare module "next-auth" {
 declare module "@auth/core/jwt" {
   interface JWT {
     id: string;
+    timezone: string;
   }
 }
 
@@ -40,7 +42,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await bcrypt.compare(password, user.hashedPassword);
         if (!valid) return null;
 
-        return { id: user.id, email: user.email, name: user.name };
+        return { id: user.id, email: user.email, name: user.name, timezone: user.timezone };
       },
     }),
   ],
@@ -48,11 +50,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: "/login" },
   callbacks: {
     jwt({ token, user }) {
-      if (user) token.id = user.id!;
+      if (user) {
+        token.id = user.id!;
+        token.timezone = (user as { timezone?: string }).timezone ?? "UTC";
+      }
       return token;
     },
     session({ session, token }) {
       session.user.id = token.id as string;
+      session.user.timezone = token.timezone ?? "UTC";
       return session;
     },
   },
