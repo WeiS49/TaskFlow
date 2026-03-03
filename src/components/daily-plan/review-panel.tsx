@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, ArrowRight, Sparkles, Undo2, Star, Clock, BarChart3 } from "lucide-react";
+import { CheckCircle2, ArrowRight, Sparkles, Undo2, Star, Clock, BarChart3, Repeat } from "lucide-react";
 import { DailyQuote } from "./daily-quote";
 import { EnergySelector } from "./energy-selector";
 import { MoodSelector } from "./mood-selector";
@@ -117,10 +117,10 @@ export function ReviewPanel({ completedTasks, tomorrowTasks, review, date, recur
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
           <span className="text-xs font-medium text-muted-foreground">
-            Completed today ({completedTasks.length})
+            Completed today ({completedTasks.length + recurringCompletions.length})
           </span>
         </div>
-        {completedTasks.length === 0 ? (
+        {completedTasks.length === 0 && recurringCompletions.length === 0 ? (
           <p className="text-xs text-muted-foreground/60 pl-5">
             No tasks completed yet.
           </p>
@@ -153,6 +153,14 @@ export function ReviewPanel({ completedTasks, tomorrowTasks, review, date, recur
                 >
                   <Undo2 className="h-3 w-3" />
                 </button>
+              </li>
+            ))}
+            {recurringCompletions.map((c) => (
+              <li key={c.id} className="flex items-start gap-2">
+                <Repeat className="mt-0.5 h-3 w-3 shrink-0 text-violet-500" />
+                <span className="text-xs text-foreground line-through opacity-70">
+                  {c.task.title}
+                </span>
               </li>
             ))}
           </ul>
