@@ -7,6 +7,7 @@ import { dailyReviews } from "@/db/schema";
 import { dailyReviewSchema } from "@/lib/validators";
 import { requireAuth, type ActionResult } from "@/lib/auth-utils";
 import type { DailyReview } from "@/db/schema";
+import { getDailyReview } from "@/db/queries";
 
 export async function setKeyTask(
   date: string,
@@ -93,4 +94,9 @@ export async function upsertDailyReview(
       error: error instanceof Error ? error.message : "Failed to save review",
     };
   }
+}
+
+export async function fetchDayReview(date: string) {
+  const userId = await requireAuth();
+  return getDailyReview(userId, date);
 }

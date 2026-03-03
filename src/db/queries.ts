@@ -1,9 +1,9 @@
-import { and, eq, ne, isNull, ilike, or, desc, asc, gte, lt, sql, count, sum } from "drizzle-orm";
+import { and, eq, ne, isNull, ilike, or, desc, asc, gte, lte, lt, sql, count, sum } from "drizzle-orm";
 import { db } from "@/db";
 import { tasks, projects, labels, dailyReviews, taskCompletions } from "@/db/schema";
 import type { ScheduledTimeBlock } from "@/lib/constants";
 import { SCHEDULED_TIME_BLOCKS } from "@/lib/constants";
-import { getLocalToday, getLocalTomorrow, getLocalDayRange } from "@/lib/date-utils";
+import { getLocalToday, getLocalTomorrow, getLocalDayRange, type WeekRange } from "@/lib/date-utils";
 
 export async function getTodayTasks(userId: string, timezone: string) {
   const today = getLocalToday(timezone);
@@ -40,6 +40,24 @@ export async function getTodayTasks(userId: string, timezone: string) {
   }
 
   return { tasks: allTasks, grouped, unscheduled };
+}
+
+export async function getWeekTasks(userId: string, week: WeekRange) {
+  return db.query.tasks.findMany({
+    where: and(
+      eq(tasks.userId, userId),
+      isNull(tasks.deletedAt),
+      ne(tasks.status, "done"),
+      gte(tasks.startDate, week.start),
+      lte(tasks.startDate, week.end),
+    ),
+    with: {
+      project: true,
+      taskLabels: { with: { label: true } },
+      subtasks: true,
+    },
+    orderBy: [asc(tasks.position), asc(tasks.createdAt)],
+  });
 }
 
 export async function getAllTasks(userId: string) {
@@ -238,6 +256,8 @@ export interface DayStats {
   completedCount: number;
   totalMinutes: number;
   keyTaskCompleted: boolean;
+  mood: string | null;
+  energyLevel: number | null;
 }
 
 export async function getDailyStatistics(
@@ -250,24 +270,40 @@ export async function getDailyStatistics(
   startDate.setDate(startDate.getDate() - days + 1);
   const startStr = startDate.toISOString().slice(0, 10);
 
-  // Regular completions by date (using completedAt timezone conversion)
-  const regularResults = await db
-    .select({
-      date: sql<string>`(${tasks.completedAt} AT TIME ZONE 'UTC' AT TIME ZONE ${timezone})::date::text`,
-      completedCount: count(),
-      totalMinutes: sum(tasks.estimatedMinutes),
-    })
-    .from(tasks)
-    .where(
-      and(
-        eq(tasks.userId, userId),
-        eq(tasks.status, "done"),
-        isNull(tasks.deletedAt),
-        gte(sql`(${tasks.completedAt} AT TIME ZONE 'UTC' AT TIME ZONE ${timezone})::date::text`, startStr),
-        eq(tasks.isRecurring, false),
-      ),
-    )
-    .groupBy(sql`(${tasks.completedAt} AT TIME ZONE 'UTC' AT TIME ZONE ${timezone})::date::text`);
+  // Regular completions by date (JS-side timezone grouping to avoid AT TIME ZONE)
+  const rangeStart = new Date(startStr + "T00:00:00Z");
+  rangeStart.setDate(rangeStart.getDate() - 1); // buffer for timezone offset
+  const rangeEnd = new Date(today + "T00:00:00Z");
+  rangeEnd.setDate(rangeEnd.getDate() + 2); // buffer for timezone offset
+
+  const completedTasks = await db.query.tasks.findMany({
+    where: and(
+      eq(tasks.userId, userId),
+      eq(tasks.status, "done"),
+      isNull(tasks.deletedAt),
+      eq(tasks.isRecurring, false),
+      gte(tasks.completedAt, rangeStart),
+      lt(tasks.completedAt, rangeEnd),
+    ),
+    columns: { completedAt: true, estimatedMinutes: true },
+  });
+
+  // Group by local date in user's timezone
+  const regularMap = new Map<string, { completedCount: number; totalMinutes: number }>();
+  for (const t of completedTasks) {
+    if (!t.completedAt) continue;
+    const localDate = t.completedAt.toLocaleDateString("en-CA", { timeZone: timezone });
+    if (localDate < startStr) continue;
+    const entry = regularMap.get(localDate) ?? { completedCount: 0, totalMinutes: 0 };
+    entry.completedCount++;
+    entry.totalMinutes += t.estimatedMinutes ?? 0;
+    regularMap.set(localDate, entry);
+  }
+  const regularResults = Array.from(regularMap.entries()).map(([date, stats]) => ({
+    date,
+    completedCount: stats.completedCount,
+    totalMinutes: stats.totalMinutes,
+  }));
 
   // Recurring completions by date
   const recurringResults = await db
@@ -285,11 +321,13 @@ export async function getDailyStatistics(
     )
     .groupBy(taskCompletions.date);
 
-  // Key task completion by date
+  // Key task completion + mood/energy by date
   const reviewResults = await db
     .select({
       date: dailyReviews.date,
       keyTaskId: dailyReviews.keyTaskId,
+      mood: dailyReviews.mood,
+      energyLevel: dailyReviews.energyLevel,
     })
     .from(dailyReviews)
     .where(
@@ -323,7 +361,7 @@ export async function getDailyStatistics(
     const d = new Date(today + "T00:00:00");
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().slice(0, 10);
-    dateMap.set(dateStr, { date: dateStr, completedCount: 0, totalMinutes: 0, keyTaskCompleted: false });
+    dateMap.set(dateStr, { date: dateStr, completedCount: 0, totalMinutes: 0, keyTaskCompleted: false, mood: null, energyLevel: null });
   }
 
   for (const r of regularResults) {
@@ -344,8 +382,12 @@ export async function getDailyStatistics(
 
   for (const r of reviewResults) {
     const stat = dateMap.get(r.date);
-    if (stat && r.keyTaskId) {
-      stat.keyTaskCompleted = completedKeyTaskSet.has(r.keyTaskId);
+    if (stat) {
+      if (r.keyTaskId) {
+        stat.keyTaskCompleted = completedKeyTaskSet.has(r.keyTaskId);
+      }
+      stat.mood = r.mood;
+      stat.energyLevel = r.energyLevel;
     }
   }
 
