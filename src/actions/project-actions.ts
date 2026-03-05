@@ -77,6 +77,42 @@ export async function updateProject(
   }
 }
 
+export async function reorderProject(
+  id: string,
+  position: number,
+): Promise<ActionResult<Project>> {
+  try {
+    const userId = await requireAuth();
+
+    const [project] = await db
+      .update(projects)
+      .set({ position })
+      .where(
+        and(
+          eq(projects.id, id),
+          eq(projects.userId, userId),
+          isNull(projects.deletedAt),
+        ),
+      )
+      .returning();
+
+    if (!project) {
+      return { success: false, error: "Project not found" };
+    }
+
+    revalidatePath("/today");
+    revalidatePath("/tasks");
+    revalidatePath("/week");
+    return { success: true, data: project };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to reorder project",
+    };
+  }
+}
+
 export async function deleteProject(
   id: string,
 ): Promise<ActionResult<Project>> {
