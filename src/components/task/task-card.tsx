@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { differenceInDays, format, startOfDay } from "date-fns";
 import { toggleTaskStatus } from "@/actions/task-actions";
 import { TaskCheckbox } from "./task-checkbox";
 import { TaskEditDialog } from "./task-edit-dialog";
@@ -10,6 +11,11 @@ import { Star, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/db/queries";
 import type { Project, Label, Task } from "@/db/schema";
+
+const PRIORITY_BORDER: Record<string, string> = {
+  urgent: "#EF4444",
+  high: "#F97316",
+};
 
 interface TaskCardProps {
   task: TaskWithRelations;
@@ -27,6 +33,19 @@ export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onD
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const isDone = task.status === "done";
+  const borderColor = PRIORITY_BORDER[task.priority] ?? task.project?.color;
+
+  const dueDateDisplay = useMemo(() => {
+    if (!task.dueDate) return null;
+    const today = startOfDay(new Date());
+    const due = startOfDay(new Date(task.dueDate));
+    const diff = differenceInDays(due, today);
+    if (diff < 0) return { label: `Overdue · ${format(due, "MMM d")}`, className: "text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-950" };
+    if (diff === 0) return { label: "Due today", className: "text-orange-600 bg-orange-100 dark:text-orange-400 dark:bg-orange-950" };
+    if (diff === 1) return { label: "Due tomorrow", className: "text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-950" };
+    if (diff <= 3) return { label: `Due ${format(due, "MMM d")}`, className: "text-muted-foreground bg-secondary" };
+    return null;
+  }, [task.dueDate]);
 
   function handleToggle() {
     startTransition(async () => {
@@ -46,6 +65,10 @@ export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onD
           "group flex items-start gap-3.5 rounded-xl border border-border bg-card px-5 py-4 transition-all hover:border-primary hover:shadow-[0_2px_8px_rgba(99,102,241,0.08)] cursor-pointer",
           isPending && "opacity-60",
         )}
+        style={{
+          borderLeftWidth: borderColor ? "3px" : undefined,
+          borderLeftColor: borderColor || undefined,
+        }}
         onClick={() => setEditOpen(true)}
       >
         <div onClick={(e) => e.stopPropagation()}>
@@ -104,6 +127,11 @@ export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onD
               <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
                 ▸ {task.subtasks.filter((s) => s.status === "done").length}/
                 {task.subtasks.length} subtasks
+              </span>
+            )}
+            {dueDateDisplay && (
+              <span className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px]", dueDateDisplay.className)}>
+                {dueDateDisplay.label}
               </span>
             )}
             {task.estimatedMinutes && (
