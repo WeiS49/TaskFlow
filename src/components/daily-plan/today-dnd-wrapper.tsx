@@ -121,6 +121,12 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
   }, []);
 
   const handleTaskUpdated = useCallback((task: Task) => {
+    // Task moved to a different date → remove from today
+    if (task.startDate && task.startDate !== today) {
+      handleDelete(task.id);
+      return;
+    }
+
     const newBlock = task.timeBlock as ScheduledTimeBlock;
     const isScheduled = SCHEDULED_TIME_BLOCKS.includes(newBlock);
 
@@ -180,7 +186,7 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
       }
       return prev;
     });
-  }, [projects, grouped, unscheduledTasks]);
+  }, [projects, grouped, unscheduledTasks, today, handleDelete]);
 
   const handleTaskCreated = useCallback((task: Task) => {
     const block = task.timeBlock as ScheduledTimeBlock;
