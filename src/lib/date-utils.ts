@@ -3,6 +3,8 @@
  * All "today" calculations use the user's timezone instead of UTC.
  */
 
+import { startOfWeek, addDays, format } from "date-fns";
+
 export function getLocalToday(timezone: string): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: timezone });
 }
@@ -41,4 +43,28 @@ function normalizeOffset(offset: string): string {
   const num = offset.replace(/^[+-]/, "");
   const hours = num.padStart(2, "0");
   return `${sign}${hours}:00`;
+}
+
+export interface WeekRange {
+  start: string;
+  end: string;
+  days: string[];
+}
+
+export function getWeekRange(timezone: string, offsetWeeks: number = 0): WeekRange {
+  const now = new Date();
+  const localNow = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
+  const monday = startOfWeek(localNow, { weekStartsOn: 1 });
+  const offsetMonday = addDays(monday, offsetWeeks * 7);
+
+  const days: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    days.push(format(addDays(offsetMonday, i), "yyyy-MM-dd"));
+  }
+
+  return {
+    start: days[0],
+    end: days[6],
+    days,
+  };
 }

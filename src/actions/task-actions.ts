@@ -43,6 +43,7 @@ export async function createTask(
 
     revalidatePath("/today");
     revalidatePath("/tasks");
+    revalidatePath("/week");
     if (task.projectId) revalidatePath(`/projects/${task.projectId}`);
     return { success: true, data: task };
   } catch (error) {
@@ -92,6 +93,7 @@ export async function updateTask(
 
     revalidatePath("/today");
     revalidatePath("/tasks");
+    revalidatePath("/week");
     return { success: true, data: task };
   } catch (error) {
     return {
@@ -119,6 +121,7 @@ export async function deleteTask(id: string): Promise<ActionResult<Task>> {
 
     revalidatePath("/today");
     revalidatePath("/tasks");
+    revalidatePath("/week");
     if (task.projectId) revalidatePath(`/projects/${task.projectId}`);
     return { success: true, data: task };
   } catch (error) {
@@ -162,6 +165,7 @@ export async function toggleTaskStatus(
 
       revalidatePath("/today");
       revalidatePath("/tasks");
+      revalidatePath("/week");
       return { success: true, data: existing };
     }
 
@@ -177,6 +181,7 @@ export async function toggleTaskStatus(
 
     revalidatePath("/today");
     revalidatePath("/tasks");
+    revalidatePath("/week");
     return { success: true, data: task };
   } catch (error) {
     return {
@@ -209,6 +214,7 @@ export async function reorderTask(
 
     revalidatePath("/today");
     revalidatePath("/tasks");
+    revalidatePath("/week");
     return { success: true, data: task };
   } catch (error) {
     return {
@@ -277,12 +283,45 @@ export async function setTaskLabels(
 
     revalidatePath("/today");
     revalidatePath("/tasks");
+    revalidatePath("/week");
     return { success: true, data: { taskId, labelIds } };
   } catch (error) {
     return {
       success: false,
       error:
         error instanceof Error ? error.message : "Failed to update labels",
+    };
+  }
+}
+
+export async function moveTaskToDate(
+  taskId: string,
+  startDate: string,
+  position: number,
+): Promise<ActionResult<Task>> {
+  try {
+    const userId = await requireAuth();
+
+    const [task] = await db
+      .update(tasks)
+      .set({ startDate, position })
+      .where(
+        and(eq(tasks.id, taskId), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
+      )
+      .returning();
+
+    if (!task) {
+      return { success: false, error: "Task not found" };
+    }
+
+    revalidatePath("/today");
+    revalidatePath("/tasks");
+    revalidatePath("/week");
+    return { success: true, data: task };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to move task",
     };
   }
 }
