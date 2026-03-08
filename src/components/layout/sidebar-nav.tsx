@@ -19,7 +19,7 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { LogOut, Plus, GripVertical } from "lucide-react";
+import { LogOut, Plus, GripVertical, Settings } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
@@ -236,6 +236,18 @@ export function SidebarNav({
           </span>
           <ThemeToggle />
         </div>
+        <Link
+          href="/settings"
+          className={cn(
+            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+            pathname === "/settings"
+              ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+          )}
+        >
+          <Settings className="h-4 w-4" />
+          Settings
+        </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
