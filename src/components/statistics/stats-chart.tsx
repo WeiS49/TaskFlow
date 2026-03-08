@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DayStats } from "@/db/queries";
 import { DayReviewDialog } from "./day-review-dialog";
@@ -163,7 +164,7 @@ export function StatsChart({ stats7, stats30 }: StatsChartProps) {
       </div>
 
       {/* Mood & Energy trends */}
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid gap-8 md:grid-cols-3">
         <TrendRow
           data={data}
           label="Mood"
@@ -187,6 +188,17 @@ export function StatsChart({ stats7, stats30 }: StatsChartProps) {
                 style={{ opacity: 0.2 + (d.energyLevel / 5) * 0.8 }}
                 title={`Energy ${d.energyLevel}/5`}
               />
+            ) : (
+              <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/20" />
+            )
+          }
+        />
+        <TrendRow
+          data={data}
+          label="Key task"
+          renderDot={(d) =>
+            d.keyTaskCompleted ? (
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
             ) : (
               <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/20" />
             )

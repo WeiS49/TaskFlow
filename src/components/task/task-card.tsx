@@ -2,12 +2,13 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { differenceInDays, format, startOfDay } from "date-fns";
-import { toggleTaskStatus } from "@/actions/task-actions";
+import { toggleTaskStatus, updateTask } from "@/actions/task-actions";
 import { TaskCheckbox } from "./task-checkbox";
 import { TaskEditDialog } from "./task-edit-dialog";
 import { ProjectBadge } from "@/components/project/project-badge";
+import { ProjectQuickPicker } from "@/components/project/project-quick-picker";
 import { LabelBadge } from "@/components/label/label-badge";
-import { Star, Repeat } from "lucide-react";
+import { Star, Repeat, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/db/queries";
 import type { Project, Label, Task } from "@/db/schema";
@@ -54,6 +55,17 @@ export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onD
         onUncomplete?.(task.id);
       } else {
         onComplete?.(task.id);
+      }
+    });
+  }
+
+  function handleProjectChange(projectId: string | null) {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("projectId", projectId ?? "");
+      const result = await updateTask(task.id, formData);
+      if (result.success && result.data) {
+        onTaskUpdated?.(result.data);
       }
     });
   }
@@ -110,12 +122,27 @@ export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onD
           )}
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            {task.project && (
-              <ProjectBadge
-                name={task.project.name}
-                color={task.project.color}
-              />
-            )}
+            <ProjectQuickPicker
+              projects={projects}
+              currentProjectId={task.projectId}
+              onSelect={handleProjectChange}
+            >
+              {task.project ? (
+                <button className="cursor-pointer" type="button">
+                  <ProjectBadge
+                    name={task.project.name}
+                    color={task.project.color}
+                  />
+                </button>
+              ) : (
+                <button
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground/40 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-secondary hover:text-muted-foreground"
+                  type="button"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+              )}
+            </ProjectQuickPicker>
             {task.taskLabels.map((tl) => (
               <LabelBadge
                 key={tl.label.id}
