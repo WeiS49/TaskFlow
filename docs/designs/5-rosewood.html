@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V5: Rosewood — 玫瑰木</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #FBF7F8; color: #2B2024; height: 100vh; }
+  .page { display: none; }
+  .page.active { display: flex; }
+
+  .toggle-bar { position:fixed;top:0;left:0;right:0;z-index:50;background:#FBF7F8;border-bottom:1px solid #E8D8DC;padding:10px 24px;display:flex;align-items:center;gap:10px; }
+  .toggle-bar .title { font-family:'Crimson Pro',serif;font-weight:600;font-size:15px;color:#2B2024;margin-right:16px; }
+  .tbtn { cursor:pointer;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:500;transition:all 0.2s;border:none;font-family:'Inter',sans-serif; }
+  .tbtn.active { background:#BE4B6E;color:white; }
+  .tbtn:not(.active) { background:#F3E8EC;color:#2B2024; }
+  .tbtn:not(.active):hover { background:#E8D8DC; }
+  .toggle-bar .meta { margin-left:auto;font-size:12px;color:#9A7E87; }
+
+  .login-page { background:linear-gradient(180deg,#F3E8EC 0%,#FBF7F8 50%);align-items:center;justify-content:center;min-height:100vh;padding-top:48px; }
+  .login-card { background:white;border:1px solid #E8D8DC;border-radius:16px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(190,75,110,0.06); }
+  .login-logo { text-align:center;margin-bottom:32px; }
+  .login-logo .icon { display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;background:#FCE4EC;margin-bottom:12px; }
+  .login-logo h1 { font-family:'Crimson Pro',serif;font-size:28px;font-weight:600;color:#2B2024; }
+  .login-logo p { font-size:14px;color:#9A7E87;margin-top:4px; }
+  .form-group { margin-bottom:18px; }
+  .form-group label { display:block;font-size:13px;font-weight:500;color:#2B2024;margin-bottom:6px; }
+  .form-group input { width:100%;padding:10px 14px;border:1px solid #E8D8DC;border-radius:10px;font-size:14px;color:#2B2024;background:#FBF7F8;outline:none;transition:all 0.15s;font-family:'Inter',sans-serif; }
+  .form-group input:focus { border-color:#BE4B6E;box-shadow:0 0 0 3px rgba(190,75,110,0.1); }
+  .form-group input::placeholder { color:#C4B0B8; }
+  .login-btn { width:100%;padding:11px;border:none;border-radius:10px;font-size:14px;font-weight:500;color:white;cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;background:#BE4B6E; }
+  .login-btn:hover { background:#A83D5E; }
+
+  .app-page { height:100vh;padding-top:44px; }
+  .sidebar { width:260px;background:#F3E8EC;padding:24px 0;display:flex;flex-direction:column;position:fixed;left:0;top:44px;bottom:0;overflow-y:auto; }
+  .sidebar-header { padding:0 20px 24px; }
+  .sidebar-header h2 { font-family:'Crimson Pro',serif;font-size:22px;font-weight:600;color:#2B2024; }
+  .sidebar-header .date { font-size:13px;color:#9A7E87;margin-top:2px; }
+  .nav-item { display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:14px;color:#6B555E;cursor:pointer;transition:all 0.15s; }
+  .nav-item:hover { background:#E8D8DC; }
+  .nav-item.active { background:#E8D8DC;color:#BE4B6E;font-weight:500; }
+  .nav-item .count { margin-left:auto;font-size:11px;color:#9A7E87;background:#E8D8DC;padding:2px 7px;border-radius:8px; }
+  .nav-divider { height:1px;background:#E8D8DC;margin:16px 20px; }
+  .nav-section { font-family:'Crimson Pro',serif;font-size:13px;font-weight:600;color:#9A7E87;padding:4px 20px; }
+  .project-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+
+  .main-content { margin-left:260px;margin-right:320px;flex:1;display:flex;flex-direction:column;border-left:1px solid #E8D8DC;border-right:1px solid #E8D8DC;height:calc(100vh - 44px);overflow-y:auto; }
+  .day-header { padding:32px 40px 24px; }
+  .day-header .greeting { font-family:'Crimson Pro',serif;font-size:28px;font-weight:600;color:#2B2024; }
+  .day-header .summary { font-size:14px;color:#9A7E87;margin-top:6px;line-height:1.5; }
+  .day-header .stats { display:flex;gap:24px;margin-top:16px; }
+  .stat-value { font-family:'Crimson Pro',serif;font-size:24px;font-weight:600;color:#BE4B6E; }
+  .stat-label { font-size:11px;color:#9A7E87;margin-top:2px; }
+  .time-divider { padding:0 40px;margin-top:8px; }
+  .time-line { display:flex;align-items:center;gap:12px; }
+  .time-line span { font-family:'Crimson Pro',serif;font-size:14px;font-weight:500;color:#9A7E87;white-space:nowrap; }
+  .time-line::after { content:'';flex:1;height:1px;background:#E8D8DC; }
+  .task-list { padding:12px 40px; }
+  .task-card { background:white;border:1px solid #E8D8DC;border-radius:12px;padding:16px 20px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;display:flex;gap:14px; }
+  .task-card:hover { border-color:#BE4B6E;box-shadow:0 2px 8px rgba(190,75,110,0.08); }
+  .checkbox { width:20px;height:20px;border-radius:50%;border:2px solid #D4C0C6;flex-shrink:0;margin-top:2px;transition:all 0.15s; }
+  .task-card:hover .checkbox { border-color:#BE4B6E; }
+  .checkbox.done { background:#BE4B6E;border-color:#BE4B6E; }
+  .card-title { font-size:14px;font-weight:500;color:#2B2024;line-height:1.4; }
+  .card-title.done { text-decoration:line-through;color:#C4B0B8; }
+  .card-desc { font-size:12px;color:#9A7E87;margin-top:4px;line-height:1.4; }
+  .card-meta { display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap; }
+  .tag { font-size:11px;padding:2px 10px;border-radius:6px; }
+  .tag-project { background:#F0ECFE;color:#6B21A8; }
+  .tag-label { background:#FCE4EC;color:#AD1457; }
+  .tag-bug { background:#FEF0EF;color:#C4554D; }
+  .tag-research { background:#E8F5E9;color:#2E7D32; }
+  .card-duration { font-size:11px;color:#9A7E87;background:#F3E8EC;padding:2px 8px;border-radius:6px;margin-left:auto; }
+
+  .review-panel { width:320px;background:#F3E8EC;padding:32px 24px;position:fixed;right:0;top:44px;bottom:0;overflow-y:auto; }
+  .review-panel h3 { font-family:'Crimson Pro',serif;font-size:18px;font-weight:600;margin-bottom:20px;color:#2B2024; }
+  .review-section { margin-bottom:24px; }
+  .review-section h4 { font-family:'Crimson Pro',serif;font-size:14px;font-weight:500;color:#9A7E87;margin-bottom:8px; }
+  .review-item { display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;color:#6B555E; }
+  .review-check { width:14px;height:14px;border-radius:3px;border:1.5px solid #D4C0C6;flex-shrink:0; }
+  .review-check.done { background:#BE4B6E;border-color:#BE4B6E; }
+  .review-item.completed { text-decoration:line-through;color:#C4B0B8; }
+  .review-divider { height:1px;background:#E8D8DC;margin:20px 0; }
+  .energy-bar { display:flex;gap:4px;margin-top:8px; }
+  .energy-dot { width:24px;height:8px;border-radius:4px;background:#E8D8DC; }
+  .energy-dot.filled { background:#BE4B6E; }
+  .energy-dot.half { background:linear-gradient(90deg,#BE4B6E 50%,#E8D8DC 50%); }
+  .mood-row { display:flex;gap:8px;margin-top:8px; }
+  .mood-opt { font-size:20px;padding:4px 8px;border-radius:8px;cursor:pointer; }
+  .mood-opt.sel { background:#FCE4EC; }
+  .quote-box { background:white;border-radius:12px;padding:16px 20px;margin-top:16px; }
+  .quote-text { font-family:'Crimson Pro',serif;font-size:15px;font-style:italic;color:#6B555E;line-height:1.5; }
+  .quote-author { font-size:11px;color:#9A7E87;margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="toggle-bar">
+  <span class="title">V5: Rosewood — 玫瑰木</span>
+  <button class="tbtn active" onclick="show('login')">登录页</button>
+  <button class="tbtn" onclick="show('app')">主应用</button>
+  <span class="meta">评分 ★★★★☆ (7.8/10) · 典雅柔美 · 玫瑰色强调 · 独特个性 · 适合追求独特审美的用户</span>
+</div>
+
+<div id="login" class="page login-page active">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon"><svg width="24" height="24" fill="none" stroke="#BE4B6E" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+      <h1>TaskFlow</h1>
+      <p>典雅有序的任务空间</p>
+    </div>
+    <div class="form-group">
+      <label>邮箱地址</label>
+      <input type="email" placeholder="admin@taskflow.local">
+    </div>
+    <div class="form-group">
+      <label>密码</label>
+      <input type="password" value="••••••••">
+    </div>
+    <button class="login-btn">登 录</button>
+  </div>
+</div>
+
+<div id="app" class="page app-page">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>TaskFlow</h2>
+      <div class="date">2026年2月26日 · 周四</div>
+    </div>
+    <div class="nav-item active"><span>🌸</span> 今日计划 <span class="count">5</span></div>
+    <div class="nav-item"><span>📥</span> 收件箱 <span class="count">3</span></div>
+    <div class="nav-item"><span>📆</span> 本周总览</div>
+    <div class="nav-item"><span>📊</span> 回顾</div>
+    <div class="nav-divider"></div>
+    <div class="nav-section">项目</div>
+    <div class="nav-item"><span class="project-dot" style="background:#8B5CF6"></span> TaskFlow SaaS <span class="count">8</span></div>
+    <div class="nav-item"><span class="project-dot" style="background:#3B82F6"></span> Claude 插件 <span class="count">5</span></div>
+    <div class="nav-item"><span class="project-dot" style="background:#22C55E"></span> 个人学习 <span class="count">4</span></div>
+    <div class="nav-item"><span class="project-dot" style="background:#F59E0B"></span> 内容创作 <span class="count">3</span></div>
+    <div class="nav-divider"></div>
+    <div class="nav-section">标签</div>
+    <div class="nav-item"><span style="font-size:12px">#</span> feature</div>
+    <div class="nav-item"><span style="font-size:12px">#</span> bug</div>
+    <div class="nav-item"><span style="font-size:12px">#</span> research</div>
+  </div>
+
+  <div class="main-content">
+    <div class="day-header">
+      <div class="greeting">今日计划</div>
+      <div class="summary">你今天有 5 个任务，预计需要 4.5 小时。建议上午专注做高优先级任务。</div>
+      <div class="stats">
+        <div><div class="stat-value">5</div><div class="stat-label">待完成</div></div>
+        <div><div class="stat-value">4.5h</div><div class="stat-label">预计时长</div></div>
+        <div><div class="stat-value">2</div><div class="stat-label">高优先级</div></div>
+      </div>
+    </div>
+    <div class="time-divider"><div class="time-line"><span>上午 · 专注时段</span></div></div>
+    <div class="task-list">
+      <div class="task-card">
+        <div class="checkbox"></div>
+        <div style="flex:1">
+          <div class="card-title">设计数据库 Schema — Drizzle ORM</div>
+          <div class="card-desc">users, projects, tasks, labels 表结构及关联关系</div>
+          <div class="card-meta">
+            <span class="tag tag-project">TaskFlow SaaS</span>
+            <span class="tag tag-label">feature</span>
+            <span class="card-duration">⏱ 1.5h</span>
+          </div>
+        </div>
+      </div>
+      <div class="task-card">
+        <div class="checkbox"></div>
+        <div style="flex:1">
+          <div class="card-title">修复登录页面表单验证 bug</div>
+          <div class="card-desc">NextAuth credentials provider 返回错误信息不明确</div>
+          <div class="card-meta">
+            <span class="tag tag-project">TaskFlow SaaS</span>
+            <span class="tag tag-bug">bug</span>
+            <span class="card-duration">⏱ 45min</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="time-divider" style="margin-top:12px"><div class="time-line"><span>下午 · 灵活时段</span></div></div>
+    <div class="task-list">
+      <div class="task-card">
+        <div class="checkbox"></div>
+        <div style="flex:1">
+          <div class="card-title">阅读 Drizzle ORM 官方文档</div>
+          <div class="card-meta">
+            <span class="tag tag-research">research</span>
+            <span class="card-duration">⏱ 1h</span>
+          </div>
+        </div>
+      </div>
+      <div class="task-card">
+        <div class="checkbox"></div>
+        <div style="flex:1">
+          <div class="card-title">写 Claude Code 工作流体验推文</div>
+          <div class="card-desc">记录 agent teams 并行调研的截图和心得</div>
+          <div class="card-meta">
+            <span class="tag" style="background:#FEF3C7;color:#9A6700">内容创作</span>
+            <span class="card-duration">⏱ 45min</span>
+          </div>
+        </div>
+      </div>
+      <div class="task-card" style="opacity:0.5">
+        <div class="checkbox done"></div>
+        <div style="flex:1">
+          <div class="card-title done">完成用户认证模块</div>
+          <div class="card-meta">
+            <span class="tag tag-project">TaskFlow SaaS</span>
+            <span class="tag tag-label">feature</span>
+            <span class="card-duration">⏱ 30min</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="review-panel">
+    <h3>日终回顾</h3>
+    <div class="review-section">
+      <h4>今日完成</h4>
+      <div class="review-item completed"><div class="review-check done"></div> 初始化 Next.js 项目</div>
+      <div class="review-item completed"><div class="review-check done"></div> 竞品调研报告整理</div>
+      <div class="review-item completed"><div class="review-check done"></div> UI 风格对比 mockup</div>
+    </div>
+    <div class="review-section">
+      <h4>能量水平</h4>
+      <div class="energy-bar">
+        <div class="energy-dot filled"></div><div class="energy-dot filled"></div><div class="energy-dot filled"></div><div class="energy-dot half"></div><div class="energy-dot"></div>
+      </div>
+    </div>
+    <div class="review-section">
+      <div style="font-size:12px;color:#9A7E87;margin-bottom:6px">今天感觉如何？</div>
+      <div class="mood-row">
+        <span class="mood-opt">😫</span><span class="mood-opt">😐</span><span class="mood-opt sel">🙂</span><span class="mood-opt">😊</span><span class="mood-opt">🔥</span>
+      </div>
+    </div>
+    <div class="review-divider"></div>
+    <div class="review-section">
+      <h4>明日预告</h4>
+      <div class="review-item"><div class="review-check"></div> 实现任务 CRUD API</div>
+      <div class="review-item"><div class="review-check"></div> 基础 UI 组件搭建</div>
+    </div>
+    <div class="review-divider"></div>
+    <div class="quote-box">
+      <div class="quote-text">"Beauty is not in the face; beauty is a light in the heart."</div>
+      <div class="quote-author">— Kahlil Gibran</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(p){document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById(p).classList.add('active');document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');}
+</script>
+</body>
+</html>
