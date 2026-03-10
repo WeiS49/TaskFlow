@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { zhCN } from "date-fns/locale";
 
 interface WeekHeaderProps {
   start: string;
@@ -15,7 +14,7 @@ export function WeekHeader({ start, end, offset }: WeekHeaderProps) {
   const startDate = parseISO(start);
   const endDate = parseISO(end);
 
-  const label = `${format(startDate, "M月d日", { locale: zhCN })} — ${format(endDate, "M月d日", { locale: zhCN })}`;
+  const label = `${format(startDate, "MMM d")} — ${format(endDate, "MMM d")}`;
 
   return (
     <div className="flex items-center gap-4">

@@ -22,7 +22,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { LogOut, Plus, GripVertical, Settings } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { format } from "date-fns";
-import { zhCN } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
 import { ProjectFormDialog } from "@/components/project/project-form-dialog";
@@ -143,7 +142,7 @@ export function SidebarNav({
           TaskFlow
         </h2>
         <p className="mt-0.5 text-[13px] text-muted-foreground">
-          {format(new Date(todayDate + "T00:00:00"), "yyyy年M月d日 · EEEE", { locale: zhCN })}
+          {format(new Date(todayDate + "T00:00:00"), "MMM d, yyyy · EEEE")}
         </p>
       </div>
 

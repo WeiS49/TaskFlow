@@ -3,7 +3,6 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { format, parseISO, isToday } from "date-fns";
-import { zhCN } from "date-fns/locale";
 import { WeekTaskCard } from "@/components/week/week-task-card";
 import { cn } from "@/lib/utils";
 import type { TaskWithRelations } from "@/db/queries";
@@ -37,7 +36,7 @@ export function DayColumn({ date, tasks, projects, labels, onComplete, onDelete,
           "text-xs font-medium",
           today ? "text-primary" : "text-muted-foreground",
         )}>
-          {format(dateObj, "EEE", { locale: zhCN })}
+          {format(dateObj, "EEE")}
         </div>
         <div className={cn(
           "mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold",
