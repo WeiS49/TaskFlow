@@ -49,11 +49,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id!;
-        token.timezone = (user as { timezone?: string }).timezone ?? "UTC";
       }
+      // Always refresh timezone from DB so settings changes take effect immediately
+      const dbUser = await db.query.users.findFirst({
+        where: eq(users.id, token.id as string),
+        columns: { timezone: true },
+      });
+      token.timezone = dbUser?.timezone ?? "UTC";
       return token;
     },
     session({ session, token }) {
