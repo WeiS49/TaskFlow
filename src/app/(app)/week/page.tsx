@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getUserTimezone } from "@/lib/auth-utils";
 import { getWeekTasks, getProjects, getLabels } from "@/db/queries";
 import { getWeekRange } from "@/lib/date-utils";
 import { WeekHeader } from "@/components/week/week-header";
@@ -15,7 +16,8 @@ export default async function WeekPage({
 
   const params = await searchParams;
   const offset = params.offset ? parseInt(params.offset, 10) : 0;
-  const week = getWeekRange(session.user.timezone, offset);
+  const tz = await getUserTimezone(session.user.id);
+  const week = getWeekRange(tz, offset);
 
   const [tasks, projects, labels] = await Promise.all([
     getWeekTasks(session.user.id, week),

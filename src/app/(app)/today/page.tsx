@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getUserTimezone } from "@/lib/auth-utils";
 import { getTodayTasks, getProjects, getLabels, getCompletedToday, getTomorrowTasks, getDailyReview, getTodayRecurringCompletions } from "@/db/queries";
 import { getLocalToday } from "@/lib/date-utils";
 import { DayHeader } from "@/components/daily-plan/day-header";
@@ -10,7 +11,7 @@ export default async function TodayPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const tz = session.user.timezone;
+  const tz = await getUserTimezone(session.user.id);
   const today = getLocalToday(tz);
 
   const [{ tasks, grouped, unscheduled }, projects, labels, completedTasks, tomorrowTasks, review, recurringCompletions] = await Promise.all([

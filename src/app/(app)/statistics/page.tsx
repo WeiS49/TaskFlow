@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getUserTimezone } from "@/lib/auth-utils";
 import { getDailyStatistics } from "@/db/queries";
 import { StatsOverview } from "@/components/statistics/stats-overview";
 import { StatsChart } from "@/components/statistics/stats-chart";
@@ -8,7 +9,7 @@ export default async function StatisticsPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const tz = session.user.timezone;
+  const tz = await getUserTimezone(session.user.id);
 
   const [stats7, stats30] = await Promise.all([
     getDailyStatistics(session.user.id, tz, 7),
