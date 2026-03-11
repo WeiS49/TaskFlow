@@ -30,6 +30,11 @@ export function DayHeader({ tasks }: DayHeaderProps) {
       <p className="mt-1.5 text-sm text-muted-foreground">
         You have {pendingTasks} tasks today
         {totalMinutes > 0 && `, estimated ${durationLabel}`}.
+        {totalMinutes > 480 && (
+          <span className="ml-1 text-orange-500 dark:text-orange-400">
+            ⚠ Heavy day — consider rescheduling.
+          </span>
+        )}
       </p>
       <div className="mt-4 flex gap-6">
         <div>
@@ -39,7 +44,7 @@ export function DayHeader({ tasks }: DayHeaderProps) {
           <div className="text-[11px] text-muted-foreground">Pending</div>
         </div>
         <div>
-          <div className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-primary">
+          <div className={`font-[family-name:var(--font-heading)] text-2xl font-semibold ${totalMinutes > 600 ? "text-red-500 dark:text-red-400" : totalMinutes > 480 ? "text-orange-500 dark:text-orange-400" : "text-primary"}`}>
             {totalMinutes > 0 ? durationLabel : "—"}
           </div>
           <div className="text-[11px] text-muted-foreground">Estimated</div>

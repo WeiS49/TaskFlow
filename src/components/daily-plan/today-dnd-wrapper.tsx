@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -54,6 +54,21 @@ function calcPosition(tasks: TaskWithRelations[], targetIndex: number): number {
   return (tasks[targetIndex - 1].position + tasks[targetIndex].position) / 2;
 }
 
+/** Build a fingerprint from task IDs + key fields so we detect server data changes */
+function dataFingerprint(
+  grouped: Record<ScheduledTimeBlock, TaskWithRelations[]>,
+  unscheduled: TaskWithRelations[],
+  completed: TaskWithRelations[],
+) {
+  const parts: string[] = [];
+  for (const block of SCHEDULED_TIME_BLOCKS) {
+    parts.push(grouped[block].map((t) => `${t.id}:${t.estimatedMinutes ?? 0}`).join(","));
+  }
+  parts.push(unscheduled.map((t) => t.id).join(","));
+  parts.push(completed.map((t) => t.id).join(","));
+  return parts.join("|");
+}
+
 export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialUnscheduled, completedToday, projects, labels, today, keyTaskId: initialKeyTaskId }: TodayDndWrapperProps) {
   const [grouped, setGrouped] = useState(initialGrouped);
   const [unscheduledTasks, setUnscheduledTasks] = useState(initialUnscheduled);
@@ -61,6 +76,20 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
   const [currentKeyTaskId, setCurrentKeyTaskId] = useState(initialKeyTaskId);
+
+  // Sync client state with server data after revalidation
+  const serverFingerprint = useMemo(
+    () => dataFingerprint(initialGrouped, initialUnscheduled, completedToday),
+    [initialGrouped, initialUnscheduled, completedToday],
+  );
+  const [prevFingerprint, setPrevFingerprint] = useState(serverFingerprint);
+  if (serverFingerprint !== prevFingerprint) {
+    setPrevFingerprint(serverFingerprint);
+    setGrouped(initialGrouped);
+    setUnscheduledTasks(initialUnscheduled);
+    setCompletedTasks(completedToday);
+    setCurrentKeyTaskId(initialKeyTaskId);
+  }
 
   const handleSetKeyTask = useCallback((taskId: string) => {
     const newId = currentKeyTaskId === taskId ? null : taskId;

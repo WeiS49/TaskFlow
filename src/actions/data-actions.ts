@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
 import {
+  users,
   projects,
   labels,
   tasks,
@@ -13,6 +14,34 @@ import {
   taskCompletions,
 } from "@/db/schema";
 import { requireAuth, type ActionResult } from "@/lib/auth-utils";
+
+export async function updateTimezone(
+  timezone: string,
+): Promise<ActionResult<{ timezone: string }>> {
+  try {
+    const userId = await requireAuth();
+
+    // Validate timezone by attempting to use it
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: timezone });
+    } catch {
+      return { success: false, error: "Invalid timezone" };
+    }
+
+    await db
+      .update(users)
+      .set({ timezone })
+      .where(eq(users.id, userId));
+
+    revalidatePath("/", "layout");
+    return { success: true, data: { timezone } };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update timezone",
+    };
+  }
+}
 
 const recordArray = z.array(z.record(z.string(), z.unknown()));
 
