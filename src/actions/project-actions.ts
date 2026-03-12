@@ -25,8 +25,7 @@ export async function createProject(
       .values({ ...parsed.data, userId })
       .returning();
 
-    revalidatePath("/today");
-    revalidatePath("/tasks");
+    revalidatePath("/", "layout");
     return { success: true, data: project };
   } catch (error) {
     return {
@@ -65,8 +64,7 @@ export async function updateProject(
       return { success: false, error: "Project not found" };
     }
 
-    revalidatePath("/today");
-    revalidatePath("/tasks");
+    revalidatePath("/", "layout");
     return { success: true, data: project };
   } catch (error) {
     return {
@@ -100,9 +98,7 @@ export async function reorderProject(
       return { success: false, error: "Project not found" };
     }
 
-    revalidatePath("/today");
-    revalidatePath("/tasks");
-    revalidatePath("/week");
+    revalidatePath("/", "layout");
     return { success: true, data: project };
   } catch (error) {
     return {
@@ -135,8 +131,7 @@ export async function deleteProject(
       return { success: false, error: "Project not found" };
     }
 
-    revalidatePath("/today");
-    revalidatePath("/tasks");
+    revalidatePath("/", "layout");
     return { success: true, data: project };
   } catch (error) {
     return {
