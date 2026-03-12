@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -82,14 +82,13 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
     () => dataFingerprint(initialGrouped, initialUnscheduled, completedToday),
     [initialGrouped, initialUnscheduled, completedToday],
   );
-  const [prevFingerprint, setPrevFingerprint] = useState(serverFingerprint);
-  if (serverFingerprint !== prevFingerprint) {
-    setPrevFingerprint(serverFingerprint);
+  useEffect(() => {
     setGrouped(initialGrouped);
     setUnscheduledTasks(initialUnscheduled);
     setCompletedTasks(completedToday);
     setCurrentKeyTaskId(initialKeyTaskId);
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverFingerprint, initialKeyTaskId]);
 
   const handleSetKeyTask = useCallback((taskId: string) => {
     const newId = currentKeyTaskId === taskId ? null : taskId;

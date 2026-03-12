@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -105,16 +105,15 @@ export function SidebarNav({
   const [createOpen, setCreateOpen] = useState(false);
   const [sortedProjects, setSortedProjects] = useState(projects);
 
-  // Sync with server data when projects prop changes (same pattern as today-dnd-wrapper)
+  // Sync with server data when projects prop changes
   const serverFingerprint = useMemo(
     () => projects.map((p) => `${p.id}:${p.position}`).join(","),
     [projects],
   );
-  const [prevFingerprint, setPrevFingerprint] = useState(serverFingerprint);
-  if (serverFingerprint !== prevFingerprint) {
-    setPrevFingerprint(serverFingerprint);
+  useEffect(() => {
     setSortedProjects(projects);
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverFingerprint]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
