@@ -1,4 +1,4 @@
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, isNull, ne, or, lte, gte } from "drizzle-orm";
 import { db } from "@/db";
 import { projects, labels, tasks } from "@/db/schema";
 import { getLocalToday } from "@/lib/date-utils";
@@ -25,7 +25,10 @@ export async function Sidebar({ user }: SidebarProps) {
         eq(tasks.userId, user.id),
         isNull(tasks.deletedAt),
         ne(tasks.status, "done"),
-        eq(tasks.startDate, today),
+        or(
+          eq(tasks.startDate, today),
+          and(lte(tasks.startDate, today), gte(tasks.dueDate, today)),
+        ),
       ),
       columns: { id: true },
     }),

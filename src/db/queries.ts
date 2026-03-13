@@ -12,7 +12,10 @@ export async function getTodayTasks(userId: string, timezone: string) {
     where: and(
       eq(tasks.userId, userId),
       isNull(tasks.deletedAt),
-      eq(tasks.startDate, today),
+      or(
+        eq(tasks.startDate, today),
+        and(lte(tasks.startDate, today), gte(tasks.dueDate, today)),
+      ),
       ne(tasks.status, "done"),
     ),
     with: {
@@ -48,8 +51,10 @@ export async function getWeekTasks(userId: string, week: WeekRange) {
       eq(tasks.userId, userId),
       isNull(tasks.deletedAt),
       ne(tasks.status, "done"),
-      gte(tasks.startDate, week.start),
-      lte(tasks.startDate, week.end),
+      or(
+        and(gte(tasks.startDate, week.start), lte(tasks.startDate, week.end)),
+        and(lte(tasks.startDate, week.end), gte(tasks.dueDate, week.start)),
+      ),
     ),
     with: {
       project: true,
