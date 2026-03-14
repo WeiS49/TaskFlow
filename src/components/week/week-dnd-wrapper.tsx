@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -17,6 +17,7 @@ import {
   type CollisionDetection,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { toast } from "sonner";
 import { DayColumn } from "./day-column";
 import { TaskCard } from "@/components/task/task-card";
 import { moveTaskToDate } from "@/actions/task-actions";
@@ -58,6 +59,13 @@ function calcPosition(tasks: TaskWithRelations[], targetIndex: number): number {
   return (tasks[targetIndex - 1].position + tasks[targetIndex].position) / 2;
 }
 
+/** Build a fingerprint from task IDs + startDates so we detect server data changes */
+function dataFingerprint(tasks: TaskWithRelations[], days: string[]) {
+  return tasks
+    .map((t) => `${t.id}:${t.startDate ?? ""}:${t.position}`)
+    .join(",") + "|" + days.join(",");
+}
+
 // pointerWithin finds containers reliably (including empty ones),
 // rectIntersection provides fallback for item-level sorting
 const collisionDetection: CollisionDetection = (args) => {
@@ -69,6 +77,16 @@ const collisionDetection: CollisionDetection = (args) => {
 export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: WeekDndWrapperProps) {
   const [grouped, setGrouped] = useState(() => groupByDate(initialTasks, days));
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
+
+  // Sync client state with server data after revalidation
+  const serverFingerprint = useMemo(
+    () => dataFingerprint(initialTasks, days),
+    [initialTasks, days],
+  );
+  useEffect(() => {
+    setGrouped(groupByDate(initialTasks, days));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverFingerprint]);
 
   const handleComplete = useCallback((taskId: string) => {
     setGrouped((prev) => {
@@ -169,10 +187,6 @@ export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: 
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Read current state to compute server action params before setState
-    let targetDate: string | null = null;
-    let targetPosition = 0;
-
     setGrouped((prev) => {
       const container = findDateContainer(prev, activeId);
       if (!container) return prev;
@@ -198,9 +212,17 @@ export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: 
         newIndex !== -1 ? newIndex : oldIndex,
       );
 
-      // Capture for server action call outside setState
-      targetDate = container;
-      targetPosition = position;
+      // Defer server action to avoid setState-during-render
+      queueMicrotask(async () => {
+        try {
+          const result = await moveTaskToDate(activeId, container, position);
+          if (!result.success) {
+            toast.error(result.error ?? "Failed to move task.");
+          }
+        } catch {
+          toast.error("Failed to move task. Please try again.");
+        }
+      });
 
       // Update startDate in local state so UI reflects immediately
       const updatedTasks = tasks.map((t) =>
@@ -209,15 +231,11 @@ export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: 
 
       return { ...prev, [container]: updatedTasks };
     });
-
-    // Call server action outside setState updater
-    if (targetDate) {
-      moveTaskToDate(activeId, targetDate, targetPosition);
-    }
   }, []);
 
   return (
     <DndContext
+      id="week-dnd"
       sensors={sensors}
       collisionDetection={collisionDetection}
       onDragStart={handleDragStart}

@@ -201,7 +201,7 @@ export function SidebarNav({
               <Plus className="h-3.5 w-3.5" />
             </button>
           </div>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext id="sidebar-dnd" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={sortedProjects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
               {sortedProjects.map((project) => (
                 <SortableProject

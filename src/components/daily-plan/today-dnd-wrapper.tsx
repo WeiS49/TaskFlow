@@ -335,6 +335,7 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
 
   return (
     <DndContext
+      id="today-dnd"
       sensors={sensors}
       collisionDetection={closestCorners}
       onDragStart={handleDragStart}

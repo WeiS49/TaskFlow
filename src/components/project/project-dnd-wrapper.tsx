@@ -130,6 +130,7 @@ export function ProjectDndWrapper({ tasks: initialTasks, projects, labels, proje
 
   return (
     <DndContext
+      id="project-dnd"
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
