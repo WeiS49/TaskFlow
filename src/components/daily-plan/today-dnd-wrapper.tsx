@@ -274,11 +274,12 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
       if (taskIndex === -1) return prev;
 
       const [movedTask] = fromTasks.splice(taskIndex, 1);
+      const updatedTask = { ...movedTask, timeBlock: toBlock };
 
       // Find insert position
       const overIndex = toTasks.findIndex((t) => t.id === overId);
       const insertIndex = overIndex >= 0 ? overIndex : toTasks.length;
-      toTasks.splice(insertIndex, 0, movedTask);
+      toTasks.splice(insertIndex, 0, updatedTask);
 
       return { ...prev, [fromBlock]: fromTasks, [toBlock]: toTasks };
     });
@@ -312,24 +313,22 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
       if (oldIndex !== newIndex) {
         const [moved] = tasks.splice(oldIndex, 1);
         tasks.splice(newIndex, 0, moved);
-
-        const position = calcPosition(
-          tasks.filter((t) => t.id !== activeId),
-          newIndex,
-        );
-        // Defer server action to avoid setState-during-render
-        queueMicrotask(() => reorderTask(activeId, position, container));
-
-        return { ...prev, [container]: tasks };
       }
 
+      const finalIndex = oldIndex !== newIndex ? newIndex : oldIndex;
       const position = calcPosition(
         tasks.filter((t) => t.id !== activeId),
-        oldIndex,
+        finalIndex,
       );
+      // Defer server action to avoid setState-during-render
       queueMicrotask(() => reorderTask(activeId, position, container));
 
-      return prev;
+      // Update timeBlock + position on the task object for optimistic UI
+      const updatedTasks = tasks.map((t) =>
+        t.id === activeId ? { ...t, timeBlock: container, position } : t,
+      );
+
+      return { ...prev, [container]: updatedTasks };
     });
   }, []);
 
