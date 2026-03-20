@@ -4,6 +4,12 @@ A personal task management app with a calm, Sunsama-inspired UI. Built with Next
 
 ![TaskFlow Today View](docs/today-view.jpg)
 
+<!-- TODO: Add demo GIF here -->
+
+## Live Demo
+
+Try it at your deployed URL — open registration (50 spots, first come first served).
+
 ## Features
 
 - **Daily Plan** — Morning / Afternoon / Evening / Unscheduled time blocks with drag-and-drop
@@ -26,6 +32,17 @@ A personal task management app with a calm, Sunsama-inspired UI. Built with Next
 - **Validation**: Zod
 - **Drag & Drop**: dnd-kit
 
+## Architecture Decisions
+
+| Decision | Why |
+|----------|-----|
+| **Server Actions over REST** | Automatic CSRF protection, integrated cache revalidation, less boilerplate |
+| **Fractional indexing** | `position: real` enables O(1) drag-and-drop reorder without renumbering siblings |
+| **startDate visibility** | Tasks hidden from Today view until their start date — reduces cognitive load |
+| **Soft delete** | `deletedAt` timestamps instead of hard delete — user data is never lost |
+| **JWT sessions** | Single-user app needs no DB session table — simpler, fewer queries |
+| **Neon HTTP driver** | `@neondatabase/serverless` for reliable connections in serverless environments |
+
 ## Getting Started
 
 ### Prerequisites
@@ -37,7 +54,7 @@ A personal task management app with a calm, Sunsama-inspired UI. Built with Next
 
 ```bash
 # Clone
-git clone https://github.com/YOUR_USERNAME/taskflow.git
+git clone https://github.com/WeiS49/TaskFlow.git
 cd taskflow
 
 # Install dependencies
