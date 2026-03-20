@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { loginAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +76,14 @@ export default function LoginPage() {
           {pending ? "Signing in..." : "Sign in"}
         </Button>
       </form>
+
+      {/* Sign up link */}
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        Don&apos;t have an account?{" "}
+        <Link href="/register" className="text-primary hover:underline">
+          Sign up
+        </Link>
+      </p>
     </div>
   );
 }
