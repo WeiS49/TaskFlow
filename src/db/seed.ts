@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import * as schema from "./schema";
@@ -16,8 +16,12 @@ if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
 }
 
 async function main() {
-  const client = postgres(DATABASE_URL!);
-  const db = drizzle({ client, schema });
+  // Convert pooler URL to direct URL for neon() HTTP driver
+  const directUrl = DATABASE_URL!
+    .replace(/-pooler\./, ".")
+    .replace(/[&?]channel_binding=[^&]*/g, "");
+  const sql = neon(directUrl);
+  const db = drizzle({ client: sql, schema });
 
   const existing = await db.query.users.findFirst({
     where: eq(schema.users.email, ADMIN_EMAIL!),
@@ -25,7 +29,6 @@ async function main() {
 
   if (existing) {
     console.log(`User ${ADMIN_EMAIL} already exists, skipping.`);
-    await client.end();
     return;
   }
 
@@ -38,7 +41,6 @@ async function main() {
   });
 
   console.log(`Created admin user: ${ADMIN_EMAIL}`);
-  await client.end();
 }
 
 main().catch((err) => {
