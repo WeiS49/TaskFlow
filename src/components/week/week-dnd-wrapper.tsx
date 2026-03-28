@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -77,6 +77,11 @@ const collisionDetection: CollisionDetection = (args) => {
 export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: WeekDndWrapperProps) {
   const [grouped, setGrouped] = useState(() => groupByDate(initialTasks, days));
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
+
+  const initialTasksRef = useRef(initialTasks);
+  initialTasksRef.current = initialTasks;
+  const daysRef = useRef(days);
+  daysRef.current = days;
 
   // Sync client state with server data after revalidation
   const serverFingerprint = useMemo(
@@ -182,10 +187,19 @@ export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: 
     const { active, over } = event;
     setActiveTask(null);
 
-    if (!over) return;
+    if (!over) {
+      // Revert handleDragOver's visual changes
+      setGrouped(groupByDate(initialTasksRef.current, daysRef.current));
+      return;
+    }
 
     const activeId = active.id as string;
     const overId = over.id as string;
+
+    let serverContainer: string | null = null;
+    let serverPosition = 0;
+    let originalStartDate: string | null = null;
+    let originalDueDate: string | null = null;
 
     setGrouped((prev) => {
       const container = findDateContainer(prev, activeId);
@@ -193,6 +207,7 @@ export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: 
 
       const tasks = [...prev[container]];
       const oldIndex = tasks.findIndex((t) => t.id === activeId);
+      const activeTask = tasks[oldIndex];
 
       let newIndex: number;
       if (prev[overId] !== undefined) {
@@ -212,25 +227,47 @@ export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: 
         newIndex !== -1 ? newIndex : oldIndex,
       );
 
-      // Defer server action to avoid setState-during-render
-      queueMicrotask(async () => {
-        try {
-          const result = await moveTaskToDate(activeId, container, position);
-          if (!result.success) {
-            toast.error(result.error ?? "Failed to move task.");
-          }
-        } catch {
-          toast.error("Failed to move task. Please try again.");
-        }
-      });
+      // Capture values for server action (called outside updater)
+      serverContainer = container;
+      serverPosition = position;
+      originalStartDate = activeTask?.startDate ?? null;
+      originalDueDate = activeTask?.dueDate ?? null;
 
-      // Update startDate in local state so UI reflects immediately
+      // Update startDate + dueDate in local state for optimistic UI
+      let newDueDate = activeTask?.dueDate ?? null;
+      if (originalStartDate && originalDueDate && originalStartDate !== container) {
+        const daysDiff = Math.round(
+          (new Date(container).getTime() - new Date(originalStartDate).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const due = new Date(originalDueDate);
+        due.setDate(due.getDate() + daysDiff);
+        newDueDate = due.toISOString().split("T")[0];
+      }
+
       const updatedTasks = tasks.map((t) =>
-        t.id === activeId ? { ...t, startDate: container, position } : t,
+        t.id === activeId ? { ...t, startDate: container, dueDate: newDueDate, position } : t,
       );
 
       return { ...prev, [container]: updatedTasks };
     });
+
+    // Call server action OUTSIDE the updater
+    if (serverContainer !== null) {
+      moveTaskToDate(activeId, serverContainer, serverPosition, originalStartDate, originalDueDate)
+        .then((result) => {
+          if (!result.success) {
+            toast.error(result.error ?? "Failed to move task.");
+          }
+        })
+        .catch(() => {
+          toast.error("Failed to move task. Please try again.");
+        });
+    }
+  }, []);
+
+  const handleDragCancel = useCallback(() => {
+    setActiveTask(null);
+    setGrouped(groupByDate(initialTasksRef.current, daysRef.current));
   }, []);
 
   return (
@@ -241,6 +278,7 @@ export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: 
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div className="grid grid-cols-7 gap-3">
         {days.map((date) => (
