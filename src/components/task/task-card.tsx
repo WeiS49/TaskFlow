@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useEffect } from "react";
 import { differenceInDays, format, startOfDay } from "date-fns";
 import { toggleTaskStatus, updateTask } from "@/actions/task-actions";
 import { TaskCheckbox } from "./task-checkbox";
 import { TaskEditDialog } from "./task-edit-dialog";
+import { SubtaskList } from "./subtask-list";
 import { ProjectBadge } from "@/components/project/project-badge";
 import { ProjectQuickPicker } from "@/components/project/project-quick-picker";
 import { LabelBadge } from "@/components/label/label-badge";
@@ -33,8 +34,16 @@ interface TaskCardProps {
 export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onDelete, onTaskUpdated, isKeyTask, onSetKeyTask }: TaskCardProps) {
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
+  const [subtasksExpanded, setSubtasksExpanded] = useState(false);
+  const [localSubtasks, setLocalSubtasks] = useState(task.subtasks ?? []);
   const isDone = task.status === "done";
   const borderColor = PRIORITY_BORDER[task.priority] ?? task.project?.color;
+
+  const taskSubtasks = task.subtasks ?? [];
+  useEffect(() => {
+    setLocalSubtasks(taskSubtasks);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task.subtasks]);
 
   const dueDateDisplay = useMemo(() => {
     if (!task.dueDate) return null;
@@ -150,11 +159,20 @@ export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onD
                 color={tl.label.color}
               />
             ))}
-            {task.subtasks && task.subtasks.length > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
-                ▸ {task.subtasks.filter((s) => s.status === "done").length}/
-                {task.subtasks.length} subtasks
-              </span>
+            {localSubtasks.length > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSubtasksExpanded((prev) => !prev);
+                }}
+                className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-secondary/80 transition-colors"
+              >
+                <span className={cn("inline-block transition-transform text-[10px]", subtasksExpanded && "rotate-90")}>
+                  ▸
+                </span>
+                {localSubtasks.filter((s) => s.status === "done").length}/{localSubtasks.length} subtasks
+              </button>
             )}
             {dueDateDisplay && (
               <span className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px]", dueDateDisplay.className)}>
@@ -169,6 +187,22 @@ export function TaskCard({ task, projects, labels, onComplete, onUncomplete, onD
           </div>
         </div>
       </div>
+
+      {subtasksExpanded && localSubtasks.length > 0 && (
+        <div
+          className="border-t border-border px-3 pb-2 pt-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <SubtaskList
+            subtasks={localSubtasks}
+            parentId={task.id}
+            projects={projects}
+            labels={labels}
+            onSubtasksChange={setLocalSubtasks}
+            defaultExpanded
+          />
+        </div>
+      )}
 
       <TaskEditDialog
         task={task}

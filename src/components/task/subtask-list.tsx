@@ -16,11 +16,12 @@ interface SubtaskListProps {
   projects: Project[];
   labels: Label[];
   onSubtasksChange?: (subtasks: Task[]) => void;
+  defaultExpanded?: boolean;
 }
 
-export function SubtaskList({ subtasks, parentId, onSubtasksChange }: SubtaskListProps) {
+export function SubtaskList({ subtasks, parentId, onSubtasksChange, defaultExpanded = false }: SubtaskListProps) {
   const [localSubtasks, setLocalSubtasks] = useState<Task[]>(subtasks);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [togglePendingIds, setTogglePendingIds] = useState<Set<string>>(new Set());
   const [deletePendingIds, setDeletePendingIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
