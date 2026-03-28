@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -76,6 +76,10 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTask, setActiveTask] = useState<TaskWithRelations | null>(null);
   const [currentKeyTaskId, setCurrentKeyTaskId] = useState(initialKeyTaskId);
+
+  // Ref to the latest server-provided grouped state for drag-cancel revert
+  const initialScheduledRef = useRef(initialGrouped);
+  initialScheduledRef.current = initialGrouped;
 
   // Sync client state with server data after revalidation
   const serverFingerprint = useMemo(
@@ -289,12 +293,18 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
     const { active, over } = event;
     setActiveTask(null);
 
-    if (!over) return;
+    if (!over) {
+      // Revert handleDragOver's visual changes
+      setGrouped(initialScheduledRef.current);
+      return;
+    }
 
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Read current state to compute new order, then update state and persist separately
+    let serverContainer: ScheduledTimeBlock | null = null;
+    let serverPosition = 0;
+
     setGrouped((prev) => {
       const container = findContainer(prev, activeId);
       if (!container) return prev;
@@ -320,16 +330,27 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
         tasks.filter((t) => t.id !== activeId),
         finalIndex,
       );
-      // Defer server action to avoid setState-during-render
-      queueMicrotask(() => reorderTask(activeId, position, container));
 
-      // Update timeBlock + position on the task object for optimistic UI
+      // Capture for server action (called outside updater)
+      serverContainer = container;
+      serverPosition = position;
+
       const updatedTasks = tasks.map((t) =>
         t.id === activeId ? { ...t, timeBlock: container, position } : t,
       );
 
       return { ...prev, [container]: updatedTasks };
     });
+
+    // Call server action OUTSIDE the updater
+    if (serverContainer !== null) {
+      reorderTask(activeId, serverPosition, serverContainer);
+    }
+  }, []);
+
+  const handleDragCancel = useCallback(() => {
+    setActiveTask(null);
+    setGrouped(initialScheduledRef.current);
   }, []);
 
   return (
@@ -340,6 +361,7 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       {SCHEDULED_TIME_BLOCKS.map((block) => (
         <SortableTimeBlock
