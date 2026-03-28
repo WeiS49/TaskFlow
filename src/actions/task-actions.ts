@@ -298,13 +298,28 @@ export async function moveTaskToDate(
   taskId: string,
   startDate: string,
   position: number,
+  originalStartDate?: string | null,
+  originalDueDate?: string | null,
 ): Promise<ActionResult<Task>> {
   try {
     const userId = await requireAuth();
 
+    // Compute dueDate offset if both original dates exist
+    const updateData: Record<string, unknown> = { startDate, position };
+    if (originalStartDate && originalDueDate) {
+      const daysDiff = Math.round(
+        (new Date(startDate).getTime() - new Date(originalStartDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysDiff !== 0) {
+        const newDue = new Date(originalDueDate);
+        newDue.setDate(newDue.getDate() + daysDiff);
+        updateData.dueDate = newDue.toISOString().split("T")[0];
+      }
+    }
+
     const [task] = await db
       .update(tasks)
-      .set({ startDate, position })
+      .set(updateData)
       .where(
         and(eq(tasks.id, taskId), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
       )
