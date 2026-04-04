@@ -81,6 +81,9 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
   const initialScheduledRef = useRef(initialGrouped);
   initialScheduledRef.current = initialGrouped;
 
+  const groupedRef = useRef(grouped);
+  groupedRef.current = grouped;
+
   // Sync client state with server data after revalidation
   const serverFingerprint = useMemo(
     () => dataFingerprint(initialGrouped, initialUnscheduled, completedToday),
@@ -294,7 +297,6 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
     setActiveTask(null);
 
     if (!over) {
-      // Revert handleDragOver's visual changes
       setGrouped(initialScheduledRef.current);
       return;
     }
@@ -302,50 +304,42 @@ export function TodayDndWrapper({ grouped: initialGrouped, unscheduled: initialU
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    let serverContainer: ScheduledTimeBlock | null = null;
-    let serverPosition = 0;
+    // Read current state from ref (synchronous, no batching delay)
+    const currentGrouped = groupedRef.current;
+    const container = findContainer(currentGrouped, activeId);
+    if (!container) return;
 
-    setGrouped((prev) => {
-      const container = findContainer(prev, activeId);
-      if (!container) return prev;
+    const tasks = [...currentGrouped[container]];
+    const oldIndex = tasks.findIndex((t) => t.id === activeId);
+    if (oldIndex === -1) return;
 
-      const tasks = [...prev[container]];
-      const oldIndex = tasks.findIndex((t) => t.id === activeId);
-
-      let newIndex: number;
-      if (SCHEDULED_TIME_BLOCKS.includes(overId as ScheduledTimeBlock)) {
-        newIndex = tasks.length - 1;
-      } else {
-        newIndex = tasks.findIndex((t) => t.id === overId);
-        if (newIndex === -1) newIndex = oldIndex;
-      }
-
-      if (oldIndex !== newIndex) {
-        const [moved] = tasks.splice(oldIndex, 1);
-        tasks.splice(newIndex, 0, moved);
-      }
-
-      const finalIndex = oldIndex !== newIndex ? newIndex : oldIndex;
-      const position = calcPosition(
-        tasks.filter((t) => t.id !== activeId),
-        finalIndex,
-      );
-
-      // Capture for server action (called outside updater)
-      serverContainer = container;
-      serverPosition = position;
-
-      const updatedTasks = tasks.map((t) =>
-        t.id === activeId ? { ...t, timeBlock: container, position } : t,
-      );
-
-      return { ...prev, [container]: updatedTasks };
-    });
-
-    // Call server action OUTSIDE the updater
-    if (serverContainer !== null) {
-      reorderTask(activeId, serverPosition, serverContainer);
+    let newIndex: number;
+    if (SCHEDULED_TIME_BLOCKS.includes(overId as ScheduledTimeBlock)) {
+      newIndex = tasks.length - 1;
+    } else {
+      newIndex = tasks.findIndex((t) => t.id === overId);
+      if (newIndex === -1) newIndex = oldIndex;
     }
+
+    if (oldIndex !== newIndex) {
+      const [moved] = tasks.splice(oldIndex, 1);
+      tasks.splice(newIndex, 0, moved);
+    }
+
+    const finalIndex = oldIndex !== newIndex ? newIndex : oldIndex;
+    const position = calcPosition(
+      tasks.filter((t) => t.id !== activeId),
+      finalIndex,
+    );
+
+    // Optimistic UI update
+    const updatedTasks = tasks.map((t) =>
+      t.id === activeId ? { ...t, timeBlock: container, position } : t,
+    );
+    setGrouped((prev) => ({ ...prev, [container]: updatedTasks }));
+
+    // Server action (fully outside React state lifecycle)
+    reorderTask(activeId, position, container);
   }, []);
 
   const handleDragCancel = useCallback(() => {

@@ -82,6 +82,8 @@ export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: 
   initialTasksRef.current = initialTasks;
   const daysRef = useRef(days);
   daysRef.current = days;
+  const groupedRef = useRef(grouped);
+  groupedRef.current = grouped;
 
   // Sync client state with server data after revalidation
   const serverFingerprint = useMemo(
@@ -188,7 +190,6 @@ export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: 
     setActiveTask(null);
 
     if (!over) {
-      // Revert handleDragOver's visual changes
       setGrouped(groupByDate(initialTasksRef.current, daysRef.current));
       return;
     }
@@ -196,73 +197,64 @@ export function WeekDndWrapper({ days, tasks: initialTasks, projects, labels }: 
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    let serverContainer: string | null = null;
-    let serverPosition = 0;
-    let originalStartDate: string | null = null;
-    let originalDueDate: string | null = null;
+    // Read current state from ref (synchronous, no batching delay)
+    const currentGrouped = groupedRef.current;
+    const container = findDateContainer(currentGrouped, activeId);
+    if (!container) return;
 
-    setGrouped((prev) => {
-      const container = findDateContainer(prev, activeId);
-      if (!container) return prev;
+    const tasks = [...currentGrouped[container]];
+    const oldIndex = tasks.findIndex((t) => t.id === activeId);
+    const draggedTask = tasks[oldIndex];
+    if (!draggedTask) return;
 
-      const tasks = [...prev[container]];
-      const oldIndex = tasks.findIndex((t) => t.id === activeId);
-      const activeTask = tasks[oldIndex];
-
-      let newIndex: number;
-      if (prev[overId] !== undefined) {
-        newIndex = tasks.length - 1;
-      } else {
-        newIndex = tasks.findIndex((t) => t.id === overId);
-        if (newIndex === -1) newIndex = oldIndex;
-      }
-
-      if (oldIndex !== newIndex) {
-        const [moved] = tasks.splice(oldIndex, 1);
-        tasks.splice(newIndex, 0, moved);
-      }
-
-      const position = calcPosition(
-        tasks.filter((t) => t.id !== activeId),
-        newIndex !== -1 ? newIndex : oldIndex,
-      );
-
-      // Capture values for server action (called outside updater)
-      serverContainer = container;
-      serverPosition = position;
-      originalStartDate = activeTask?.startDate ?? null;
-      originalDueDate = activeTask?.dueDate ?? null;
-
-      // Update startDate + dueDate in local state for optimistic UI
-      let newDueDate = activeTask?.dueDate ?? null;
-      if (originalStartDate && originalDueDate && originalStartDate !== container) {
-        const daysDiff = Math.round(
-          (new Date(container).getTime() - new Date(originalStartDate).getTime()) / (1000 * 60 * 60 * 24)
-        );
-        const due = new Date(originalDueDate);
-        due.setDate(due.getDate() + daysDiff);
-        newDueDate = due.toISOString().split("T")[0];
-      }
-
-      const updatedTasks = tasks.map((t) =>
-        t.id === activeId ? { ...t, startDate: container, dueDate: newDueDate, position } : t,
-      );
-
-      return { ...prev, [container]: updatedTasks };
-    });
-
-    // Call server action OUTSIDE the updater
-    if (serverContainer !== null) {
-      moveTaskToDate(activeId, serverContainer, serverPosition, originalStartDate, originalDueDate)
-        .then((result) => {
-          if (!result.success) {
-            toast.error(result.error ?? "Failed to move task.");
-          }
-        })
-        .catch(() => {
-          toast.error("Failed to move task. Please try again.");
-        });
+    let newIndex: number;
+    if (currentGrouped[overId] !== undefined) {
+      newIndex = tasks.length - 1;
+    } else {
+      newIndex = tasks.findIndex((t) => t.id === overId);
+      if (newIndex === -1) newIndex = oldIndex;
     }
+
+    if (oldIndex !== newIndex) {
+      const [moved] = tasks.splice(oldIndex, 1);
+      tasks.splice(newIndex, 0, moved);
+    }
+
+    const position = calcPosition(
+      tasks.filter((t) => t.id !== activeId),
+      newIndex !== -1 ? newIndex : oldIndex,
+    );
+
+    const originalStartDate = draggedTask.startDate ?? null;
+    const originalDueDate = draggedTask.dueDate ?? null;
+
+    // Compute dueDate offset for optimistic UI
+    let newDueDate = originalDueDate;
+    if (originalStartDate && originalDueDate && originalStartDate !== container) {
+      const daysDiff = Math.round(
+        (new Date(container).getTime() - new Date(originalStartDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const due = new Date(originalDueDate);
+      due.setDate(due.getDate() + daysDiff);
+      newDueDate = due.toISOString().split("T")[0];
+    }
+
+    // Optimistic UI update
+    const updatedTasks = tasks.map((t) =>
+      t.id === activeId ? { ...t, startDate: container, dueDate: newDueDate, position } : t,
+    );
+    setGrouped((prev) => ({ ...prev, [container]: updatedTasks }));
+
+    // Server action (fully outside React state lifecycle)
+    moveTaskToDate(activeId, container, position, originalStartDate, originalDueDate)
+      .then((result) => {
+        if (!result.success) {
+          toast.error(result.error ?? "Failed to move task.");
+        }
+      })
+      .catch(() => {
+        toast.error("Failed to move task. Please try again.");
+      });
   }, []);
 
   const handleDragCancel = useCallback(() => {
