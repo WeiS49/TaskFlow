@@ -4,11 +4,9 @@ A personal task management app with a calm, Sunsama-inspired UI. Built with Next
 
 ![TaskFlow Today View](docs/today-view.jpg)
 
-<!-- TODO: Add demo GIF here -->
-
 ## Live Demo
 
-Try it at your deployed URL — open registration (50 spots, first come first served).
+Try it at [task-flow-two-eosin.vercel.app](https://task-flow-two-eosin.vercel.app) — open registration (50 spots, first come first served).
 
 ## Features
 
